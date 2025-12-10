@@ -1,7 +1,7 @@
 const fastToken = localStorage.getItem("access_token");
-        if (fastToken) {
-            window.location.href = "/dashboard";
-        }
+  if (fastToken && window.location.pathname !== '/dashboard') {
+    window.location.href = '/dashboard';
+  }
         const msg = document.getElementById("msg");
         const form = document.getElementById("login-form");
 
