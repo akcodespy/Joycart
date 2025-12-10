@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutEl = document.getElementById('logout');
 
   if (!logoutEl) {
-   o
+   
     console.warn('dashboard.js: #logout element not found — skipping logout handler');
     return;
   }

@@ -1,7 +1,8 @@
 #own
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from app.auth import get_current_user
 from app.db import Base, engine
 from app.user import router as user_router
 
@@ -25,7 +26,7 @@ def register():
 def home():
     return FileResponse("templates/dashboard.html")
 @app.get('/checkout')
-def checkout():
+def checkout(user = Depends(get_current_user)):
     return FileResponse("templates/checkout.html")
 @app.get("/favicon.ico")#added to remove favicon error
 def favicon():

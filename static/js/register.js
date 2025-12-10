@@ -1,14 +1,4 @@
 
-const fastToken = localStorage.getItem("access_token");
-console.log('register.js loaded — path:', window.location.pathname, 'token?', !!fastToken);
-
-if (fastToken && window.location.pathname !== '/dashboard') {
-
-  window.location.href = '/dashboard';
-
-}
-
-
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('register-form');
   const msg = document.getElementById('msg');

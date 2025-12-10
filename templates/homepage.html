@@ -16,6 +16,10 @@
 
 
     </head>
+	<script>
+  const token = localStorage.getItem("access_token");
+  if (token) window.location.replace("/dashboard");
+</script>
 	<body>
 			<!-- MAIN HEADER -->
 			<div id="header">

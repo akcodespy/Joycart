@@ -7,7 +7,12 @@
     <title>Joykart - Login</title>
     <link rel="stylesheet" href = "/static/css/login.css"/>
 </head>
-
+<script>
+  const token = localStorage.getItem("access_token");
+  if (token && location.pathname !== "/dashboard") {
+      window.location.replace("/dashboard");
+  }
+</script>
 <body>
     <div class="card">
         <h1>Joykart Login</h1>
