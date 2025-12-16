@@ -1,4 +1,11 @@
 fastapi
-uvicorn[standar]
+uvicorn[standard]
+sqlmodel
+sqlalchemy
+python-jose
+passlib[argon2]
+python-dotenv
 python-multipart
-argon2-cffi
+python-dateutil
+pydantic
+psycopg2-binary
