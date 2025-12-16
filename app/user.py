@@ -31,4 +31,4 @@ def login_user(payload: schemas.LoginSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
     token = create_access_token({"sub": user.username})
-    return {"access_token": token, "token_type": "bearer", "username": user.username}
+    return {"access_token": token, "token_type": "bearer", "username": user.username,"email":user.email}

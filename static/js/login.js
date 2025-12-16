@@ -13,6 +13,7 @@
             const payload = {
                 username: document.getElementById("username").value,
                 password: document.getElementById("password").value,
+                
             };
 
             setMsg("status", "Signing in...");
@@ -25,6 +26,8 @@
                 });
 
                 const data = await res.json();
+                
+
 
                 if (!res.ok) {
                     setMsg("error", data?.detail || "Invalid credentials");
@@ -35,6 +38,7 @@
 
                 localStorage.setItem("access_token", token);
                 localStorage.setItem("username", data.username);
+                localStorage.setItem("email", data.email); 
 
 
                 document.cookie = "access_token=" + encodeURIComponent(token) + "; path=/";

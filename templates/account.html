@@ -138,10 +138,10 @@ function isTokenExpired(token) {
 <script>
   // TEMP data (replace later with backend fetch)
   document.getElementById("username").innerText =
-    localStorage.getItem("username") || "User";
+    localStorage.getItem("username") ;
 
   document.getElementById("email").innerText =
-    localStorage.getItem("email") || "user@example.com";
+    localStorage.getItem("email");
 
     const logoutBtn = document.getElementById('logout');
     if (logoutBtn) {
