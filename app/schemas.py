@@ -58,3 +58,14 @@ class PaymentOut(BaseModel):
     class Config:
         orm_attributes = True
 
+class Cart(BaseModel):
+    id:int
+    user_id:int
+    created_at:datetime
+    updated_at:datetime
+class CartItems(BaseModel):
+    id:int
+    cart_id:int
+    product_id:int
+    quantity:int
+

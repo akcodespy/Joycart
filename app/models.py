@@ -35,6 +35,26 @@ class OrderItems(Base):
     product_id = Column(Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
     price_at_purchase = Column(Float, nullable=False)
+
+class Cart(Base):
+    __tablename__ = "cart"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+    
     
 class Payment(Base):
     __tablename__ = "payments"
