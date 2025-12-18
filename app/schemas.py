@@ -17,6 +17,17 @@ class UserOut(BaseModel):
     class Config:
         orm_attributes = True
 
+class SellerCreate(BaseModel):
+    store_name: str
+
+class SellerOut(BaseModel):
+    id: int
+    store_name: str
+    is_active: bool
+
+    class Config:
+        orm_attributes = True
+
 class LoginSchema(BaseModel):
     username: str
     password: str
@@ -69,3 +80,50 @@ class CartItems(BaseModel):
     product_id:int
     quantity:int
 
+
+
+class ProductCreate(BaseModel): 
+    title : str
+    description : str
+    category : str
+    price : float
+    discount_percentage : float
+    stock :int
+    brand : str
+    weight : int
+    warranty : str
+    availability : str
+    return_policy : str
+    thumbnail : str
+    images : str 
+
+class ProductOut(BaseModel):
+
+    id : int
+    title : str
+    description : str
+    category : str
+    price : float
+    discount_percentage : float
+    rating : float
+    stock :int
+    brand : str
+    sku : str
+    weight : int
+    warranty : str
+    availability : str
+    return_policy : str
+    thumbnail : str
+    images : str 
+
+class ReviewCreate(BaseModel):
+    rating:float
+    comment:str
+
+class ReviewOut(BaseModel):
+    id:int
+    product_id:int
+    rating:float
+    comment:str
+    date:datetime
+    reviewerName:str

@@ -12,7 +12,7 @@ function isTokenExpired(token) {
 
   const token = localStorage.getItem("access_token");
 
-  if (!token || isTokenExpired(token)) {
+  <!--if (!token || isTokenExpired(token)) {
     console.log("No token or expired token → redirecting");
     localStorage.removeItem("access_token");
     window.location.replace("/login");
@@ -168,52 +168,35 @@ function isTokenExpired(token) {
 				<div class="row">
 					<!-- Product main img -->
 					<div class="col-md-5 col-md-push-2">
-						<div id="product-main-img">
+  						<div id="product-main-img">
+							{% for img in product.images %}
 							<div class="product-preview">
-								<img src="static/img/product01.png" alt="">
+								<img src="{{ img }}" alt="">
 							</div>
+							{% endfor %}
 
-							<div class="product-preview">
-								<img src="static/img/product03.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="static/img/product06.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="static/img/product08.png" alt="">
-							</div>
 						</div>
-					</div>
+						</div>
 					<!-- /Product main img -->
 
 					<!-- Product thumb imgs -->
-					<div class="col-md-2  col-md-pull-5">
+					<div class="col-md-2 col-md-pull-5">
 						<div id="product-imgs">
-							<div class="product-preview">
-								<img src="static/img/product01.png" alt="">
-							</div>
 
+							{% for img in product.images %}
 							<div class="product-preview">
-								<img src="static/img/product03.png" alt="">
+								<img src="{{ img }}" alt="">
 							</div>
+							{% endfor %}
 
-							<div class="product-preview">
-								<img src="static/img/product06.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="static/img/product08.png" alt="">
-							</div>
 						</div>
-					</div>
-					<!-- /Product thumb imgs -->
+						</div>
+											<!-- /Product thumb imgs -->
 
 					<!-- Product details -->
 					<div class="col-md-5">
 						<div class="product-details">
-							<h2 class="product-name">product name goes here</h2>
+							<h2 class="product-name">{{ product.title }}</h2>
 							<div>
 								<div class="product-rating">
 									<i class="fa fa-star"></i>
@@ -225,10 +208,10 @@ function isTokenExpired(token) {
 								<a class="review-link" href="#">10 Review(s) | Add your review</a>
 							</div>
 							<div>
-								<h3 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h3>
-								<span class="product-available">In Stock</span>
+								<h3 class="product-price"> ₹{{ product.price }}</h3>
+								<span class="product-available">{{ product.availability}}</span>
 							</div>
-							<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+							
 
 							<div class="product-options">
 								<label>
@@ -264,8 +247,8 @@ function isTokenExpired(token) {
 
 							<ul class="product-links">
 								<li>Category:</li>
-								<li><a href="#">Headphones</a></li>
-								<li><a href="#">Accessories</a></li>
+								<li><a href="#">{{product.category}}</a></li>
+								
 							</ul>
 
 							<ul class="product-links">
@@ -286,8 +269,7 @@ function isTokenExpired(token) {
 							<!-- product tab nav -->
 							<ul class="tab-nav">
 								<li class="active"><a data-toggle="tab" href="#tab1">Description</a></li>
-								<li><a data-toggle="tab" href="#tab2">Details</a></li>
-								<li><a data-toggle="tab" href="#tab3">Reviews (3)</a></li>
+								<li><a data-toggle="tab" href="#tab2">Reviews</a></li>
 							</ul>
 							<!-- /product tab nav -->
 
@@ -297,30 +279,17 @@ function isTokenExpired(token) {
 								<div id="tab1" class="tab-pane fade in active">
 									<div class="row">
 										<div class="col-md-12">
-											<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+											<p>{{product.description}}</p>
 										</div>
 									</div>
 								</div>
-								<!-- /tab1  -->
-
-								<!-- tab2  -->
 								<div id="tab2" class="tab-pane fade in">
-									<div class="row">
-										<div class="col-md-12">
-											<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-										</div>
-									</div>
-								</div>
-								<!-- /tab2  -->
-
-								<!-- tab3  -->
-								<div id="tab3" class="tab-pane fade in">
 									<div class="row">
 										<!-- Rating -->
 										<div class="col-md-3">
 											<div id="rating">
 												<div class="rating-avg">
-													<span>4.5</span>
+													<span>{{product.rating}}</span>
 													<div class="rating-stars">
 														<i class="fa fa-star"></i>
 														<i class="fa fa-star"></i>

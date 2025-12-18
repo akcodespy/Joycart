@@ -1,7 +1,8 @@
 #own
 from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse,HTMLResponse
+from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.db import Base, engine
 from app.user import router as user_router
@@ -11,6 +12,7 @@ Base.metadata.create_all(bind = engine)
 app = FastAPI()
 app.mount('/static',  StaticFiles(directory='static'), name = 'static')
 app.include_router(user_router, prefix="/api")
+templates = Jinja2Templates(directory="templates")
 
 
 @app.get('/')
@@ -37,6 +39,10 @@ def hotdeals():
 @app.get('/account')
 def hotdeals():
     return FileResponse("templates/account.html")
+@app.get('/product/{product_id}')
+def product():
+    return FileResponse("templates/product.html)")
+
 
 @app.get("/favicon.ico")#added to remove favicon error
 def favicon():
