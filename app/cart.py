@@ -6,7 +6,7 @@ from app.models import Cart, CartItem, Product, User
 from app.schemas import CartAdd, CartOut
 from app.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/cart")
 
 @router.post("/add", response_model=CartOut)
 def add_to_cart(

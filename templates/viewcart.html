@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Cart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f6f6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 6px;
+        }
+        .item {
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #ddd;
+            padding: 15px 0;
+        }
+        .item img {
+            width: 100px;
+        }
+        .item h4 {
+            margin: 0;
+        }
+        .total {
+            text-align: right;
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #3498db;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h2>Your Cart</h2>
+
+    {% if cart.items %}
+        {% for item in cart.items %}
+            <div class="item">
+                <img src="{{ item.thumbnail }}" alt="">
+                <div>
+                    <h4>{{ item.title }}</h4>
+                    <p>Price: ₹ {{ item.price }}</p>
+                    <p>Quantity: {{ item.quantity }}</p>
+                    <p><b>Subtotal:</b> ₹ {{ item.subtotal }}</p>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="total">
+            <b>Total: ₹ {{ cart.total }}</b>
+        </div>
+
+        <div style="text-align:right; margin-top:20px;">
+            <button>Proceed to Checkout</button>
+        </div>
+    {% else %}
+        <p>Your cart is empty.</p>
+    {% endif %}
+</div>
+</body>
+</html>
