@@ -7,10 +7,7 @@ from app.schemas import SellerCreate, SellerOut
 from app.auth import get_current_user
 from app.models import User
 
-router = APIRouter(
-    prefix="/seller",
-    tags=["Seller"]
-)
+router = APIRouter()
 
 @router.post("/register", response_model=SellerOut)
 def register_seller(payload: SellerCreate,db: Session = Depends(get_db),current_user: User = Depends(get_current_user)):
