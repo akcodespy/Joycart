@@ -45,6 +45,7 @@ async function loadCart() {
                                 <span style="margin: 0 10px">${item.quantity}</span>
                                 <button onclick="changeQty(${item.id}, ${item.quantity + 1})">+</button>
                                 </p>
+                    <p>Remove Item:<button onclick="removeItem(${item.id})">X</button></p>
 
                     <p><b>Subtotal:</b> ₹ ${item.subtotal}</p>
                 </div>
@@ -71,6 +72,24 @@ async function changeQty(itemId, newQty) {
 
     if (!res.ok) {
         alert("Failed to update quantity");
+        return;
+    }
+
+    loadCart(); 
+}
+async function removeItem(itemId) {
+
+    const token = localStorage.getItem("access_token");
+
+    const res = await fetch(`/api/cart/item/${itemId}`, {
+    method: "DELETE",
+    headers: {
+        "Authorization": "Bearer " + token
+    }
+});
+
+    if (!res.ok) {
+        alert("Failed to delete item");
         return;
     }
 

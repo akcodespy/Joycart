@@ -59,17 +59,7 @@ def update_quantity(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    item = (
-    db.query(CartItem)
-    .join(Cart)
-    .filter(
-        CartItem.id == item_id,
-        Cart.user_id == current_user.id
-    )
-    .first()
-)
-
-
+    item = (db.query(CartItem).join(Cart).filter(CartItem.id == item_id,Cart.user_id == current_user.id).first())
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
 
@@ -78,3 +68,18 @@ def update_quantity(
 
     return {"message": "Quantity updated"}
 
+
+
+@router.delete("/item/{item_id}")
+def delete_quantity(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    item = (db.query(CartItem).join(Cart).filter(CartItem.id == item_id,Cart.user_id == current_user.id).first())
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(item)
+    db.commit()
+
+    return {"message": "Item removed"}
