@@ -18,7 +18,6 @@ async function loadOrder() {
     container.innerHTML = `
         <p><b>Order ID:</b> ${order.id}</p>
         <p><b>Status:</b> ${order.status}</p>
-        <p><b>Total:</b> ₹${order.amount}</p>
         <hr>
     `;
 
@@ -46,6 +45,7 @@ if (order.status === "PENDING") {
 if (order.status === "PAID") {
         container.innerHTML += `
             <hr>
+            <p><b>Payment ID:</b> ${order.payment}</p>
             <button onclick="Refund(${order.id})">
                 Request Refund
             </button>

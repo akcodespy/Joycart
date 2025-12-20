@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.auth import get_current_user
-from app.models import Order, OrderItems, Product
+from app.models import Order, OrderItems, Product,Payment
 
 router = APIRouter()
 
@@ -56,8 +56,7 @@ def get_order_details(
         .filter(OrderItems.order_id == order.id)
         .all()
     )
-
-    return {
+    data = {
         "id": order.id,
         "amount": order.amount,
         "currency": order.currency,
@@ -74,6 +73,13 @@ def get_order_details(
             for oi, product in items
         ]
     }
+    if order.status=="PAID":
+        payment = (
+        db.query(Payment)
+        .filter(Payment.order_id == order.id)
+        .first())
+        data["payment"]=payment.id
+    return data
 
 @router.post("/{order_id}/cancel")
 def cancel_order(order_id: int, db: Session = Depends(get_db)):
