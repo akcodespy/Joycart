@@ -13,46 +13,44 @@ async function getOrder() {
         }
     });
 
+    if (!res.ok) {
+        alert("Order not found");
+        return;
+    }
+
     const order = await res.json();
     const container = document.getElementById("items");
+
     container.innerHTML = `
         <p><b>Order ID:</b> ${order.id}</p>
         <p><b>Status:</b> ${order.status}</p>
         <p><b>Total:</b> ₹${order.amount}</p>
         <hr>
     `;
+
     if (order.status === "PENDING") {
         container.innerHTML += `
-        
-            <button id = "pay-btn" onclick="payNow(${order.id})">
-                Pay Now
-            </button>
+            <button id="pay-btn">Pay Now</button>
         `;
+
+        document
+            .getElementById("pay-btn")
+            .addEventListener("click", payNow);
     }
 }
 
-
-getOrder();
 async function payNow() {
-const btn = document.getElementById("pay-btn")
-btn.addEventListener("click", async () => {
     const res = await fetch(`/api/payments?order_id=${orderId}`, {
         method: "POST"
     });
 
-
     if (!res.ok) {
         const errorData = await res.json();
-        const errorType = errorData.detail;
-        if (errorType === "Already Paid") {
-        alert("Already Paid");
+        alert(errorData.detail || "Payment failed");
+        return;
     }
-    else{
-        alert("Order Not Found");}
-        
-    return;
-    }
-    alert("Payment successful");
+
     window.location.href = `/payment-success/${orderId}`;
-});
 }
+
+getOrder();
