@@ -1,7 +1,7 @@
 #own
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse,HTMLResponse
+from fastapi.responses import FileResponse,RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.db import Base, engine
@@ -32,11 +32,21 @@ app.include_router(payment_router,prefix="/api/payments")
 templates = Jinja2Templates(directory="templates")
 
 
-@app.get('/')
-def home():
+@app.get("/")
+def homepage(request: Request):
+    token = request.cookies.get("access_token")
+
+    if token:
+        return RedirectResponse("/dashboard", status_code=302)
+
     return FileResponse("templates/homepage.html")
 @app.get('/login')
-def login():
+def login(request: Request):
+    token = request.cookies.get("access_token")
+
+    if token:
+        return RedirectResponse("/dashboard", status_code=302)
+
     return FileResponse("templates/login.html")
 @app.get("/register")
 def register():
@@ -47,12 +57,6 @@ def dashboard():
 @app.get("/checkout/{order_id}")
 def checkout_page():
     return FileResponse("templates/checkout.html")
-@app.get('/hotdeals')
-def hotdeals():
-    return FileResponse("templates/hotdeals.html")
-@app.get('/account')
-def hotdeals():
-    return FileResponse("templates/account.html")
 @app.get('/cart')
 def viewcart():   
     return FileResponse("templates/viewcart.html")

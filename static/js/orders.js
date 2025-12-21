@@ -1,17 +1,7 @@
-const token = localStorage.getItem("access_token");
+
 
 async function loadOrders() {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-        window.location.href = "/login";
-        return;
-    }
-
-    const res = await fetch("/api/orders", {
-        headers: {
-            "Authorization": "Bearer " + token
-        }
-    });
+const res = await fetch("/api/orders", {});
 
     const orders = await res.json();
     const container = document.getElementById("orders");

@@ -1,13 +1,16 @@
 # app/crud/user.py
-from fastapi import APIRouter, Depends, HTTPException,Form
-from fastapi.responses import JSONResponse,RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException,Form,Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.auth import hash_password, verify_password, create_access_token
+from fastapi.templating import Jinja2Templates
+from app.auth import hash_password, verify_password, create_access_token,get_current_user
 from app.models import User
-from app.schemas import UserCreate, UserOut
+from app.schemas import UserOut
+
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
 @router.post("/register") #for html redirect
 def create_user(
@@ -90,3 +93,17 @@ def logout():
     response = RedirectResponse("/", status_code=302)
     response.delete_cookie("access_token")
     return response
+
+@router.get("/account")
+def account(
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    return templates.TemplateResponse(
+        "account.html",
+        {
+            "request": request,
+            "username": current_user.username,
+            "email": current_user.email
+        }
+    )
