@@ -31,25 +31,33 @@ if (order.status === "PENDING") {
             </button>
             <button onclick="cancelOrder(${order.id})">
                 Cancel
-            </button>
-        `;
-    }
+            </button><br></br>
+        <a href="/">Home</a>
+    `;
+}
 else if (order.status === "PAID") {
         container.innerHTML += `
             <hr>
             <p><b>Payment ID:</b> ${order.payment}</p>
             <button onclick="Refund(${order.id})">
                 Request Refund
-            </button>
-            
-        `;
-    }
+            </button><br></br>
+        <a href="/">Home</a>
+    `;
+}
 else if (order.status === "REFUNDED"){
         container.innerHTML += `
         <hr>
         <p><b>Refund ID:</b> ${order.payment}</p>
-        `;
-    }
+        <a href="/">Home</a>
+    `;
+}
+else if (order.status === "CANCELLED") {
+    container.innerHTML += `
+        <hr>
+        <a href="/">Home</a>
+    `;
+}
 }
 
 function goToCheckout(orderId) {

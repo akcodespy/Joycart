@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from fastapi.responses import RedirectResponse,FileResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.db import Base, engine,get_db
