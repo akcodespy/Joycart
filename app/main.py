@@ -37,9 +37,12 @@ def homepage(request: Request):
     token = request.cookies.get("access_token")
 
     if token:
-        return RedirectResponse("/dashboard", status_code=302)
+        return RedirectResponse(url="/dashboard", status_code=302)
 
-    return FileResponse("templates/homepage.html")
+    return templates.TemplateResponse(
+        "homepage.html",
+        {"request": request}
+    )
 @app.get('/login')
 def login(request: Request):
     token = request.cookies.get("access_token")
@@ -47,7 +50,10 @@ def login(request: Request):
     if token:
         return RedirectResponse("/dashboard", status_code=302)
 
-    return FileResponse("templates/login.html")
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request}
+    )
 @app.get("/register")
 def register():
     return FileResponse("templates/register.html")
