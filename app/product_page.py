@@ -18,7 +18,7 @@ def product_page(
     
     if not product:
         return templates.TemplateResponse(
-        "404.html",
+        "400.html",
         {
             "request": request,
             "message": "Product not found"

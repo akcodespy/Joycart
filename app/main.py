@@ -134,20 +134,6 @@ def payment_success(request: Request):
         {"request":request}
     )
 
-@app.get("/seller/register", dependencies=[Depends(get_current_user)])
-def seller_register(request: Request):
-    return templates.TemplateResponse(
-        "seller_register.html",
-        {"request": request}
-    )
-
-@app.get("/seller/dashboard", dependencies=[Depends(get_current_user)])
-def seller_register(request: Request):
-    return templates.TemplateResponse(
-        "seller_dashboard.html",
-        {"request": request}
-    )
-
 @app.get("/favicon.ico")#added to remove favicon error
 def favicon():
     return ""
