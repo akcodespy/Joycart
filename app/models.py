@@ -14,6 +14,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False) 
+    is_seller = Column(Boolean, default=False)
 
 class Seller(Base):
     __tablename__ = "sellers"

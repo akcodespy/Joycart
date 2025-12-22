@@ -81,6 +81,7 @@ def login_user( username: str = Form(...),
         key="access_token",
         value=token,
         httponly=True,
+        max_age=60 * 60 * 24,
         samesite="lax",
         secure=False,
         path="/"  

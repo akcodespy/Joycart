@@ -19,12 +19,12 @@ from app.orders import router as order_router
 from app.payments import router as payment_router
 
 
-Base.metadata.create_all(bind = engine)
+Base.metadata.create_all(bind = engine)#prefix="/api",
 
 app = FastAPI()
 app.mount('/static',  StaticFiles(directory='static'), name = 'static')
 app.include_router(user_router, prefix="/api")
-app.include_router(seller_router,prefix="/api",dependencies=[Depends(get_current_user)])
+app.include_router(seller_router,dependencies=[Depends(get_current_user)])
 app.include_router(cart_router,prefix="/api/cart",dependencies=[Depends(get_current_user)])
 app.include_router(viewcart_router,prefix='/api/cart',dependencies=[Depends(get_current_user)])
 app.include_router(product_router,prefix='/api/products')
