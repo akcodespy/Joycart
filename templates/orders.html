@@ -32,6 +32,7 @@
 
 <div class="orders-container">
   <h2>Your Orders</h2>
+  <a href ='/'>Home</a><br></br>
   {% for o in orders %}
   <div class="order-card">
     <div>
@@ -40,11 +41,12 @@
       <p>Amount: ₹{{ o.amount }}</p>
       <a href="/orders/{{o.id}}">View details</a>
     </div>
-
+    
     <span class="status {{ o.status }}">
       {{ o.status }}
     </span>
   </div>
+  
   
     
   
