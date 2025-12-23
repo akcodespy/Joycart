@@ -17,14 +17,7 @@ def product_page(
     product = db.query(Product).filter(Product.id == product_id).first()
     
     if not product:
-        return templates.TemplateResponse(
-        "400.html",
-        {
-            "request": request,
-            "message": "Product not found"
-        },
-        status_code=404
-    )
+        raise HTTPException(status_code=404, detail="Product not found")
     
     return templates.TemplateResponse(
         "product.html",

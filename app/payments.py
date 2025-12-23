@@ -103,7 +103,6 @@ def payment_success(
         "payment_status.html",
         {
             "request": request,
-            "status": order.status,
             "details": details,
             "paymentID": payment_id
         }
