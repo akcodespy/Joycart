@@ -45,9 +45,7 @@ def register_seller(
     return RedirectResponse("/seller/dashboard", status_code=302)
 
 @router.get("/seller/dashboard")
-def seller_dashboard(request: Request,db: Session = Depends(get_db)):
-
-
+def seller_dashboard(request: Request):
     return templates.TemplateResponse(
         "seller_dashboard.html",
         {"request": request
@@ -60,6 +58,17 @@ def seller_register_page(request: Request):
         "seller_register.html",
         {"request": request}
     )
+
+@router.get("/seller/product/form")
+def seller_register_page(request: Request):
+    return templates.TemplateResponse(
+        "seller_product_form.html",
+        {"request": request}
+    )
+
+@router.post("/seller/product/create")
+def seller_register_page(request: Request):
+    pass
 
 def populate_products(db: Session, seller_id: int):
     with open("products.json", "r", encoding="utf-8") as f:
