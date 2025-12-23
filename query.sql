@@ -1,1 +1,2 @@
-DROP TABLE sellers;
+DELETE FROM products
+WHERE id = 32;
