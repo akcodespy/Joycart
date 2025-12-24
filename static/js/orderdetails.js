@@ -19,13 +19,14 @@ async function loadOrder() {
                 <p>${item.title}</p>
                 <p>Price: ₹${item.price}</p>
                 <p>Qty: ${item.quantity}</p>
-                <p><b>Subtotal:</b> ₹${item.subtotal}</p>
+                <p>Subtotal: ₹${item.subtotal}</p>
             </div>
         `;
     });
 if (order.status === "PENDING") {
         container.innerHTML += `
             <hr>
+            <p><b>Total : </b> ₹${order.amount}</p>
             <button onclick="goToCheckout(${order.id})">
                 Proceed to Checkout
             </button>
@@ -38,7 +39,7 @@ if (order.status === "PENDING") {
 else if (order.status === "PAID") {
         container.innerHTML += `
             <hr>
-            
+            <p><b>Total : </b> ₹${order.amount}</p>
             <p><b>Payment ID:</b> ${order.payment}</p>
             <button onclick="Refund(${order.id})">
                 Request Refund
@@ -49,7 +50,7 @@ else if (order.status === "PAID") {
 else if (order.status === "REFUNDED"){
         container.innerHTML += `
         <hr>
-        
+        <p><b>Total : </b> ₹${order.amount}</p>
         <p><b>Refund ID:</b> ${order.payment}</p>
         <a href="/">Home</a>
     `;
@@ -57,7 +58,7 @@ else if (order.status === "REFUNDED"){
 else if (order.status === "CANCELLED") {
     container.innerHTML += `
         <hr>
-        
+        <p><b>Total : </b> ₹${order.amount}</p>
         <a href="/">Home</a>
     `;
 }
