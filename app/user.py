@@ -144,5 +144,17 @@ def add_address( current_user: User = Depends(get_current_user),
     db.add(address)
     db.commit()
 
-    return RedirectResponse("/dashboard", status_code=302)
+    return RedirectResponse("/api/profile", status_code=302)
 
+    
+@router.get("/addresses")
+def get_address(request:Request,current_user: User = Depends(get_current_user),db:Session=Depends(get_db)):
+
+    addresses = db.query(Address).filter(Address.user_id ==current_user.id).all()
+
+    return templates.TemplateResponse(
+        "address.html",{
+            'request':request,
+            'addresses':addresses
+        }
+    )
