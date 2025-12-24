@@ -116,6 +116,7 @@ class OrderItemCreate(BaseModel):
     product_id: int
     seller_id:int
     quantity: int
+    status:str
 
 class OrderItemOut(BaseModel):
     id: int
@@ -124,6 +125,7 @@ class OrderItemOut(BaseModel):
     seller_id: int
     quantity: int
     price_at_purchase: float
+    status:str
 
 class PaymentOut(BaseModel):
     id: int

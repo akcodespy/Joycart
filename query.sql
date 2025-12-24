@@ -1,2 +1,2 @@
-DELETE FROM products
-WHERE id = 33;
+ALTER TABLE order_items
+ADD status VARCHAR(20)

@@ -30,21 +30,34 @@
   .status.delivered { background: darkgreen; }
 </style>
 
-<div class="orders-container">
-  <h2>Your Orders</h2>
-  <a href ='/'>Home</a><br></br>
-  {% for o in orderitems %}
-  <div class="order-card">
-    <div>
-      <strong>Order ID: {{ o.order_id }}</strong>
-      <p>Price: ₹{{ o.price_at_purchase }}</p>
-      <p>Quantity: {{ o.quantity }}</p>
-      <a href="/products/{{o.product_id}}">View product</a>
-    </div>
-    
+<title>Seller Orders</title>
 
-  </div>
-  
+<div class="orders-container">
+  <h2>Seller Orders</h2>
+  <a href="/seller/dashboard">Seller Dashboard</a><br><br>
+
+  {% for order_id, items in grouped_orders.items() %}
+    <div class="order-card">
+      <div style="width:100%">
+        <h3>Order ID: {{ order_id }}</h3>
+
+        {% for o in items %}
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div>
+              <p>Price: ₹{{ o.price_at_purchase }}</p>
+              <p>Quantity: {{ o.quantity }}</p>
+              <a href="/products/{{ o.product_id }}">View product</a>
+            </div>
+
+            <!-- STATUS BADGE -->
+            <span class="status {{ o.status }}">
+              {{ o.status }}
+            </span>
+          </div>
+          <hr>
+        {% endfor %}
+      </div>
+    </div>
   {% else %}
     <p>No orders.</p>
   {% endfor %}

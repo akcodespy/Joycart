@@ -8,6 +8,8 @@ from fastapi import BackgroundTasks
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 import json,os
+from collections import defaultdict
+
 
 
 router = APIRouter()
@@ -276,11 +278,16 @@ def get_seller_order(request: Request,
         .all()
     )
 
+    grouped_orders = defaultdict(list)
+
+    for item in orderitems:
+        grouped_orders[item.order_id].append(item)
+
     return templates.TemplateResponse(
         "seller_orders.html",
         {
             "request": request,
-            "orderitems": orderitems
+            "grouped_orders": grouped_orders
             
         }
     )
