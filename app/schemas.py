@@ -19,6 +19,28 @@ class UserOut(BaseModel):
     class Config:
         orm_attributes = True
 
+class AddressBase(BaseModel):
+    name: str
+    phone: str
+
+    address_line1: str
+    address_line2: str | None = None
+
+    city: str
+    state: str
+    pincode: str
+
+class AddressCreate(AddressBase):
+    is_default: bool = False
+
+class AddressOut(AddressBase):
+    id: int
+    is_default: bool
+
+    class Config:
+        from_attributes = True
+
+
 class SellerCreate(BaseModel):
     store_name: str
 

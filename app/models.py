@@ -16,6 +16,27 @@ class User(Base):
     password = Column(String, nullable=False) 
     is_seller = Column(Boolean, default=False)
 
+class Address(Base):
+    __tablename__ = "addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    name = Column(String, nullable=False)          # Receiver name
+    phone = Column(String, nullable=False)
+
+    address_line1 = Column(String, nullable=False)
+    address_line2 = Column(String, nullable=True)
+
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    pincode = Column(String, nullable=False)
+
+    is_default = Column(Boolean, default=False)
+
+    user = relationship("User", backref="addresses")
+
 class Seller(Base):
     __tablename__ = "sellers"
 
@@ -64,6 +85,7 @@ class Order(Base):
     currency = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at = Column(DateTime, nullable=False)
+    shipping_address = Column(JSON,nullable=False)
 
 
 class OrderItems(Base):
