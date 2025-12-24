@@ -8,14 +8,19 @@ async function loadCart() {
 
     const container = document.getElementById("cart-items");
     const totalEl = document.getElementById("cart-total");
+    const orderBtn = document.getElementById("order-btn");
 
     container.innerHTML = "";
 
     if (data.items.length === 0) {
         container.innerHTML = "<p>Your cart is empty.</p>";
         totalEl.innerText = "0";
+
+        orderBtn.disabled = true;
         return;
     }
+
+    orderBtn.disabled = false;
 
     let total = 0;
 
