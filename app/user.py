@@ -166,9 +166,9 @@ def add_address(current_user: User = Depends(get_current_user),
     db.add(address)
     db.commit()
 
-    return RedirectResponse("/api/profile", status_code=302)
+    return RedirectResponse("/profile", status_code=302)
 
-@pages_router.get('/address/form')
+@pages_router.get('/address/form', dependencies=[Depends(get_current_user)])
 def add_address(request: Request):
     return templates.TemplateResponse(
         "address_form.html",
