@@ -7,6 +7,7 @@ from app.models import Order, OrderItems, Product,Payment
 import uuid
 
 router = APIRouter()
+pages_router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
 
@@ -140,3 +141,26 @@ def refund_order(order_id: int, db: Session = Depends(get_db)):
         "order_id": order.id,
         "status": order.status
     }
+
+@pages_router.get("/orders")
+def orders(request: Request, db: Session = Depends(get_db)):
+
+    current_user = request.state.user 
+    
+    orders = get_orders(current_user.id, db)
+
+    return templates.TemplateResponse(
+        "orders.html",
+        {
+            "request": request, 
+            "orders": orders
+            
+        }
+    )
+
+@pages_router.get("/orders/{order_id}")
+def order_detail_page(request: Request):
+    return templates.TemplateResponse(
+        "orderdetails.html",
+        {"request": request}
+    )

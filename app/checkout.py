@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.db import get_db
+from app.auth import get_current_user
 from app.models import Cart, CartItem, Product, Order, OrderItems
 
 router = APIRouter()
+pages_router = APIRouter()
+
+templates = Jinja2Templates(directory="templates")
 
 
 @router.post("/checkout")
@@ -77,3 +82,11 @@ def checkout(request: Request,
         "amount": total_amount,
         "currency": "INR"
     }
+
+
+@pages_router.get("/checkout/{order_id}")
+def checkout_page(request: Request):
+    return templates.TemplateResponse(
+        "checkout.html",
+        {"request":request}
+    )

@@ -7,12 +7,15 @@ from fastapi.templating import Jinja2Templates
 from app.auth import hash_password, verify_password, create_access_token,get_current_user
 from app.models import User, Address
 from app.schemas import UserOut
+from app.product import list_products
 
 
 router = APIRouter()
+pages_router = APIRouter()
+
 templates = Jinja2Templates(directory="templates")
 
-@router.post("/register") #for html redirect
+@router.post("/register")
 def create_user(
     username: str = Form(...),
     email: str = Form(...),
@@ -20,10 +23,9 @@ def create_user(
     db: Session = Depends(get_db)
 ):
     if db.query(User).filter(User.username == username).first():
-        return RedirectResponse("/register?error=username", status_code=302)
-
+        raise HTTPException(status_code=400, detail="username already exists")
     if db.query(User).filter(User.email == email).first():
-        return RedirectResponse("/register?error=email", status_code=302)
+        raise HTTPException(status_code=400, detail="email already exists")
 
     user = User(
         username=username,
@@ -36,23 +38,18 @@ def create_user(
 
     return RedirectResponse("/login", status_code=302)
 
-@router.post("/registerjs", response_model=UserOut) # for front end when using js,route url can be same ,because only first one works,but for safety name differently
-def create_user(username: str = Form(...),email:str = Form(...),
-    password: str = Form(...), db: Session = Depends(get_db)):
-    if db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=400, detail="username already exists")
-    if db.query(User).filter(User.email == email).first():
-        raise HTTPException(status_code=400, detail="email already exists")
+@pages_router.get("/register")
+def register(request: Request):
+     
+    token = request.cookies.get("access_token")
 
-    user = User(
-        username=username,
-        email=email,
-        password=hash_password(password)
+    if token:
+        return RedirectResponse("/dashboard", status_code=302)
+
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request}
     )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
 
 
 @router.post("/login")
@@ -89,14 +86,39 @@ def login_user( username: str = Form(...),
 
     return response
 
+@pages_router.get('/login')
+def login(request: Request):
+    token = request.cookies.get("access_token")
+
+    if token:
+        return RedirectResponse("/dashboard", status_code=302)
+
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request}
+    )
+
 @router.post("/logout")
 def logout():
     response = RedirectResponse("/", status_code=302)
     response.delete_cookie("access_token")
     return response
 
-@router.get("/profile")
-def account(
+@pages_router.get("/dashboard", dependencies=[Depends(get_current_user)])
+def dashboard(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    products = list_products(db)
+
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "products": products}
+    )
+
+
+@pages_router.get("/profile")
+def profile(
     request: Request,
     current_user = Depends(get_current_user)
 ):
@@ -111,7 +133,7 @@ def account(
 
 
 @router.post("/address/add")
-def add_address( current_user: User = Depends(get_current_user),
+def add_address(current_user: User = Depends(get_current_user),
     name: str = Form(...),
     phone: str = Form(...),
     address_line1: str = Form(...),
@@ -147,7 +169,7 @@ def add_address( current_user: User = Depends(get_current_user),
     return RedirectResponse("/api/profile", status_code=302)
 
     
-@router.get("/addresses")
+@pages_router.get("/addresses")
 def get_address(request:Request,current_user: User = Depends(get_current_user),db:Session=Depends(get_db)):
 
     addresses = db.query(Address).filter(Address.user_id ==current_user.id).all()

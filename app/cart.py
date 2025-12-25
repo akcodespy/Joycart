@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Cart, CartItem, Product
 from app.schemas import CartAdd, CartOut
 
 router = APIRouter()
+pages_router = APIRouter()
+
+templates = Jinja2Templates(directory="templates")
 
 @router.post("/add", response_model=CartOut)
 def add_to_cart(request:Request,
@@ -50,6 +54,43 @@ def add_to_cart(request:Request,
 
     return cart
 
+@router.get("/view")
+def get_cart(request: Request,
+    db: Session = Depends(get_db),
+    
+):
+    current_user = request.state.user
+    cart = db.query(Cart).filter(Cart.user_id == current_user.id).first()
+
+    if not cart:
+        return {"items": [], "total": 0}
+
+    items = []
+    total = 0
+
+    for item in cart.items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if not product:
+            continue
+
+        subtotal = product.price * item.quantity
+        total += subtotal
+
+        items.append({
+            "id": item.id,
+            "product_id": product.id,
+            "title": product.title,
+            "price": product.price,
+            "quantity": item.quantity,
+            "subtotal": subtotal,
+            "thumbnail": product.thumbnail
+        })
+
+    return {
+        "items": items,
+        "total": total
+    }
+
 
 @router.patch("/item/{item_id}")
 def update_quantity(request: Request,
@@ -84,3 +125,10 @@ def delete_quantity(request: Request,
     db.commit()
 
     return {"message": "Item removed"}
+
+@pages_router.get("/cart")
+def viewcart(request: Request):   
+    return templates.TemplateResponse(
+        "viewcart.html",
+        {"request":request}
+    )

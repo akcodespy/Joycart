@@ -10,6 +10,8 @@ import uuid
 
 router = APIRouter()
 
+pages_router = APIRouter()
+
 templates = Jinja2Templates(directory="templates")
 
 @router.post("")
@@ -54,7 +56,7 @@ def payment(order_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/status/{order_id}")
+@pages_router.get("/payment-status/{order_id}")
 def payment_success(
     request: Request,
     order_id: int,
@@ -106,4 +108,11 @@ def payment_success(
             "details": details,
             "paymentID": payment_id
         }
+    )
+
+@pages_router.get("/payment-success/{order_id}")
+def payment_success(request: Request):
+        return templates.TemplateResponse(
+        "payment_success.html",
+        {"request":request}
     )
