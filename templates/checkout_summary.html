@@ -2,7 +2,6 @@
 
 <hr>
 
-<!-- CART ITEMS -->
 <h3>Items</h3>
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
@@ -13,10 +12,10 @@
     <th>Subtotal</th>
   </tr>
 
-{% set total = 0 %}
+{% set ns = namespace(total=0) %}
 {% for item, product in items %}
   {% set subtotal = product.price * item.quantity %}
-  {% set total = total + subtotal %}
+  {% set ns.total = ns.total + subtotal %}
   <tr>
     <td>{{ product.title }}</td>
     <td>₹{{ product.price }}</td>
@@ -27,7 +26,7 @@
 
 <tr>
   <td colspan="3" align="right"><b>Total</b></td>
-  <td><b>₹{{ total }}</b></td>
+  <td><b>₹{{ ns.total }}</b></td>
 </tr>
 </table>
 
@@ -50,7 +49,7 @@
 <hr>
 
 <!-- CONFIRM BUTTON -->
-<form method="post" action="/checkout/confirm">
+<form method="post" action="/api/checkout/confirm">
   <input type="hidden" name="checkout_id" value="{{ checkout_id }}">
   <button type="submit">
     Confirm & Continue to Payment

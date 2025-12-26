@@ -96,12 +96,10 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    checkout_id = Column(String, unique=True, nullable=False)
     amount = Column(Float, nullable=False)
     status = Column(String, nullable=False)
     currency = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    expires_at = Column(DateTime, nullable=True)
     shipping_address = Column(JSON,nullable=True)
 
 

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment</title>
+</head>
+<body>
+
+  <h2>Online Payment</h2>
+
+  <p>You will be redirected to the payment gateway.</p>
+
+  <form method="post" action="/payment/process">
+    <input type="hidden" name="checkout_id" value="{{ checkout_id }}">
+    <button type="submit">Pay Now</button>
+  </form>
+
+  <br>
+
+  <a href="/checkout/summary?checkout_id={{ checkout_id }}">
+    ← Back to Order Summary
+  </a>
+
+</body>
+</html>

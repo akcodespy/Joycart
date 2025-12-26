@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.models import Cart, Product,Checkout,Address,CartItem
+from app.models import Cart, Product,Checkout,Address,CartItem,Order
 import uuid
 
 router = APIRouter()
@@ -162,4 +162,135 @@ def checkout_address_page(
             "addresses": addresses,
             "checkout_id": checkout_id
         }
+    )
+
+@pages_router.get("/checkout/payment")
+def checkout_payment_page(
+    request: Request,
+    checkout_id: str,
+    db: Session = Depends(get_db)
+):
+    current_user = request.state.user
+    checkout = db.query(Checkout).filter(
+        Checkout.checkout_id == checkout_id,
+        Checkout.user_id == current_user.id
+    ).first()
+
+    if not checkout or not checkout.shipping_address:
+        raise HTTPException(400, "Invalid checkout")
+
+    return templates.TemplateResponse(
+        "checkout_payment.html",
+        {
+            "request": request,
+            "checkout_id": checkout_id,
+            "amount": checkout.amount
+        }
+    )
+
+@router.post("/checkout/payment")
+def select_payment_method(
+    request:Request,
+    checkout_id: str = Form(...),
+    payment_method: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    current_user = request.state.user
+
+    checkout = db.query(Checkout).filter(
+        Checkout.checkout_id == checkout_id,
+        Checkout.user_id == current_user.id
+    ).first()
+
+    if not checkout:
+        raise HTTPException(404)
+
+    checkout.payment_method = payment_method
+    db.commit()
+
+
+    if payment_method == "COD":
+        return RedirectResponse(
+            f"/checkout/cod/confirm?checkout_id={checkout_id}",
+            status_code=302
+        )
+
+    
+    return RedirectResponse(
+        f"/payment/start?checkout_id={checkout_id}",
+        status_code=302
+    )
+
+@pages_router.get("/checkout/cod/confirm")
+def cod_confirm_page(
+    request: Request,
+    checkout_id: str
+):
+    current_user = request.state.user
+    return templates.TemplateResponse(
+        "cod_confirm.html",
+        {
+            "request": request,
+            "checkout_id": checkout_id
+        }
+    )
+
+@router.post("/checkout/cod/confirm")
+def place_cod_order(
+    request:Request,
+    checkout_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    current_user = request.state.user
+    checkout = db.query(Checkout).filter(
+        Checkout.checkout_id == checkout_id,
+        Checkout.user_id == current_user.id
+    ).first()
+
+    if not checkout:
+        raise HTTPException(404)
+
+    
+    order = Order(
+        user_id=current_user.id,
+        amount=checkout.amount,
+        shipping_address=checkout.shipping_address,
+        status="PLACED",
+        currency="INR"
+    )
+
+    db.add(order)
+    db.commit()
+
+   
+    db.delete(checkout)
+    db.commit()
+
+    return RedirectResponse(
+        f"/orders/{order.id}",
+        status_code=302
+    )
+@pages_router.get("/payment/start")
+def payment_start_page(
+    request: Request,
+    checkout_id: str
+):
+    return templates.TemplateResponse(
+        "payment_start.html",
+        {
+            "request": request,
+            "checkout_id": checkout_id
+        }
+    )
+@router.post("/payment/process")
+def payment_process(
+    request:Request,
+    checkout_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    current_user = request.state.user
+    
+    return RedirectResponse(
+        f"/payment/success?checkout_id={checkout_id}",
+        status_code=302
     )
