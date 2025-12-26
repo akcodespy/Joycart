@@ -41,9 +41,14 @@
         <p><b>Pincode:</b> {{ ad.pincode }}</p>
         <a href="/address/edit/{{ ad.id }}">
         <button type="button">Edit</button></a><br></br>
+        {% if addresses|length > 1 %}
         <form action="/api/address/delete/{{ ad.id }}" method="post">
-        <button type="submit">Delete</button></form>
-      </div>
-    {% endfor %}
+        <button type="submit" class="btn-delete">Delete</button></form>
+        {% else %}
+        <button class="btn-delete disabled" disabled
+                title="At least one address is required"> Delete</button>
+     {% endif %}
+        </div>
+      {% endfor %}
+    </div>
   </div>
-</div>
