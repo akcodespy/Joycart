@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
-from app.models import Cart, Product,Checkout,Address,CartItem,Order
+from app.models import Cart,User,Product,Checkout,OrderItems,Address,CartItem,Order
 import uuid
 
 router = APIRouter()
@@ -250,6 +250,9 @@ def place_cod_order(
     if not checkout:
         raise HTTPException(404)
 
+    cart = db.query(Cart).filter(
+        User.id == current_user.id).first()
+    
     
     order = Order(
         user_id=current_user.id,
@@ -262,8 +265,11 @@ def place_cod_order(
     db.add(order)
     db.commit()
 
+    
+
    
     db.delete(checkout)
+    db.delete(cart)
     db.commit()
 
     return RedirectResponse(
@@ -289,7 +295,7 @@ def payment_process(
     db: Session = Depends(get_db)
 ):
     current_user = request.state.user
-    
+
     return RedirectResponse(
         f"/payment/success?checkout_id={checkout_id}",
         status_code=302
