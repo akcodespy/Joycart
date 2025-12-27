@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 def payment_success(request:Request):
 
     return templates.TemplateResponse(
-        "payment_status.html",
+        "prepaid_success.html",
         {
             "request": request
             }

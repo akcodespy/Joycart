@@ -1,88 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException,Request
 from sqlalchemy.orm import Session
-from fastapi.responses import RedirectResponse
 from app.db import get_db
 from fastapi.templating import Jinja2Templates
-from app.auth import get_current_user
-from app.models import Order, OrderItems, Product,Payment,Cart,User
+from app.models import Order, OrderItems, Product,Payment
 import uuid
-from datetime import datetime, timedelta
+
 
 router = APIRouter()
 pages_router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
 
-######################PLACE ORDER###########################
-
-@router.post("/place")
-def place_order(request: Request,
-    db: Session = Depends(get_db)
-    ):
-    current_user = request.state.user
-    cart = (
-        db.query(Cart)
-        .filter(Cart.user_id == current_user.id)
-        .first()
-    )
-
-    if not cart or not cart.items:
-        raise HTTPException(status_code=400, detail="Cart is empty")
-
-    total_amount = 0
-    order_items: list[OrderItems] = []
-
-    for item in cart.items:
-        product = (
-            db.query(Product)
-            .filter(Product.id == item.product_id)
-            .first()
-        )
-
-        if not product:
-            continue
-
-        subtotal = product.price * item.quantity
-        total_amount += subtotal
-
-        order_items.append(
-            OrderItems(
-                product_id=product.id,
-                quantity=item.quantity,
-                seller_id=product.seller_id,
-                price_at_purchase=product.price
-            )
-        )
-
-    if total_amount == 0:
-        raise HTTPException(status_code=400, detail="Invalid cart")
-
-    order = Order(
-    user_id=current_user.id,
-    checkout_id=str(uuid.uuid4()),
-    amount=total_amount,
-    status="DRAFT",
-    currency="INR"
-)
-
-    db.add(order)
-    db.flush()  
-
-    
-    for oi in order_items:
-        oi.order_id = order.id
-        db.add(oi)
-
-    
-    #db.query(CartItem).filter(CartItem.cart_id == cart.id).delete()
-
-    db.commit()
-
-    return {
-    "redirect_url": f"/address/select?checkout_id={order.checkout_id}"
-}
-
-############################GET ORDERS##############################
 
 @router.get("/{order_id}")
 def get_single_order(request: Request,
@@ -137,7 +65,7 @@ def get_single_order(request: Request,
             db.query(Payment)
             .filter(
                 Payment.order_id == order.id,
-                Payment.status == "refund"
+                Payment.status == "REFUNDED"
             )
             .order_by(Payment.created_at.desc())
             .first()
@@ -167,84 +95,76 @@ def get_all_orders(request: Request, db: Session = Depends(get_db)):
 #######################################CANCEL AND REFUND ORDERS###################################
 
 @router.post("/cancel/{order_id}")
-def cancel_order(order_id: int, db: Session = Depends(get_db)):
-    order = db.query(Order).filter(Order.id == order_id).first()
-
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    if order.status != "PENDING":
-        raise HTTPException(
-            status_code=400,
-            detail="Only pending orders can be cancelled"
-        )
-
-    order.status = "CANCELLED"
-    db.commit()
-
-    return {
-        "message": "Order cancelled",
-        "order_id": order.id,
-        "status": order.status
-    }
-@router.post("/refund/{order_id}")
-def refund_order(order_id: int, db: Session = Depends(get_db)):
-    
-    order = db.query(Order).filter(Order.id == order_id).first()
-
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    if order.status != "PAID":
-        raise HTTPException(
-            status_code=400,
-            detail="Only paid orders can be refunded"
-        )
-    items = db.query(OrderItems).filter(OrderItems.order_id == order.id).all()
-
-    for item in items:
-        product = db.query(Product).filter(Product.id == item.product_id).first()
-        product.stock += item.quantity
-
-    refund_payment = Payment(
-        order_id=order.id,
-        amount=-order.amount, 
-        status="refund",
-        gateway="mock",
-        gateway_payment_id=f"REFUND-{uuid.uuid4().hex[:12]}"
-    )
-
-    db.add(refund_payment)
-    order.status = "REFUNDED"
-    db.commit()
-    
-
-    return {
-        "message": "Order refunded",
-        "order_id": order.id,
-        "status": order.status
-    }
-
-
-@pages_router.get("/orders/summary")
-def order_summary(
+def cancel_order(
+    order_id: int,
     request: Request,
-    checkout_id: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    current_user = request.state.user
+
     order = db.query(Order).filter(
-        Order.checkout_id == checkout_id,
+        Order.id == order_id,
         Order.user_id == current_user.id
     ).first()
 
     if not order:
-        raise HTTPException(404)
+        raise HTTPException(404, "Order not found")
 
-    return templates.TemplateResponse(
-        "order_summary.html",
-        {"request": request, "order": order}
-    )
+    if order.status in ["CANCELLED", "REFUNDED"]:
+        raise HTTPException(400, "Order already cancelled")
+
+    
+    order_items = db.query(OrderItems).filter(
+        OrderItems.order_id == order.id
+    ).all()
+
+    if not order_items:
+        raise HTTPException(400, "No order items found")
+
+    
+    for item in order_items:
+        if item.status in ["SHIPPED", "DELIVERED"]:
+            raise HTTPException(
+                400,
+                "Order cannot be cancelled. Some items already shipped."
+            )
+
+    refund_amount = 0
+
+    
+    for item in order_items:
+        if item.status == "PENDING":
+            item.status = "CANCELLED"
+
+            
+            product = db.query(Product).filter(
+                Product.id == item.product_id
+            ).first()
+            if product:
+                product.stock += item.quantity
+
+            refund_amount += item.price_at_purchase * item.quantity
+
+    
+    order.status = "CANCELLED"
+
+   
+    if refund_amount > 0:
+        payment = Payment(
+            order_id=order.id,
+            amount=refund_amount,
+            status="REFUNDED",
+            method="SYSTEM",
+            gateway_payment_id=f"REFUND-{uuid.uuid4().hex[:12]}"
+        )
+        db.add(payment)
+
+    db.commit()
+
+    return {
+        "message": "Order cancelled successfully",
+        "order_id": order.id
+    }
 
 @pages_router.get("/orders/{order_id}")
 def order_detail_page(request: Request):

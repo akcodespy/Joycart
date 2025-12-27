@@ -23,26 +23,12 @@ async function loadOrder() {
             </div>
         `;
     });
-if (order.status === "PENDING") {
+if (order.status === "PLACED"|| order.status === "PAID") {
         container.innerHTML += `
             <hr>
             <p><b>Total : </b> ₹${order.amount}</p>
-            <button onclick="goToCheckout(${order.id})">
-                Proceed to Checkout
-            </button>
             <button onclick="cancelOrder(${order.id})">
-                Cancel
-            </button><br></br>
-        <a href="/">Home</a>
-    `;
-}
-else if (order.status === "PAID") {
-        container.innerHTML += `
-            <hr>
-            <p><b>Total : </b> ₹${order.amount}</p>
-            <p><b>Payment ID:</b> ${order.payment}</p>
-            <button onclick="Refund(${order.id})">
-                Request Refund
+                Cancel Order
             </button><br></br>
         <a href="/">Home</a>
     `;
@@ -63,16 +49,12 @@ else if (order.status === "CANCELLED") {
     `;
 }
 }
-
-function goToCheckout(orderId) {
-    window.location.href = `/checkout/${orderId}`;
-}
 async function cancelOrder(orderId) {
     
     const confirmCancel = confirm("Are you sure you want to cancel this order?");
     if (!confirmCancel) return;
 
-    const res = await fetch(`/api/orders/${orderId}/cancel`, {
+    const res = await fetch(`/api/orders/cancel/${orderId}`, {
         method: "POST",});
 
     if (!res.ok) {
@@ -82,24 +64,6 @@ async function cancelOrder(orderId) {
     }
 
     alert("Order cancelled successfully");
-
-    window.location.reload();
-
-}
-async function Refund(orderId) {
-    const confirmCancel = confirm("Are you sure you want to request refund for this order?");
-    if (!confirmCancel) return;
-
-    const res = await fetch(`/api/orders/${orderId}/refund`, {
-        method: "POST",});
-
-    if (!res.ok) {
-        const errorData = await res.json();
-        alert(errorData.detail || "Unable to provide refund ");
-        return;
-    }
-
-    alert("Successfully Refunded");
 
     window.location.reload();
 
