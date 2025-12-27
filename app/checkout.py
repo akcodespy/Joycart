@@ -432,7 +432,7 @@ def payment_success(request: Request,
         user_id=current_user.id,
         amount=total_amount,
         shipping_address=checkout.shipping_address,
-        status="PLACED",
+        status="PAID",
         currency="INR"
     )
 
@@ -461,6 +461,6 @@ def payment_success(request: Request,
     db.delete(checkout)
     db.commit()
 
-    return RedirectResponse(f"/payment-status/{order.id}",
+    return RedirectResponse("/payment/success",
         status_code=302
     )
