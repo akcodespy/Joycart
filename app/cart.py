@@ -1,23 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request,Form
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Cart, CartItem, Product
-from app.schemas import CartAdd, CartOut
+
 
 router = APIRouter()
 pages_router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
 
-@router.post("/add", response_model=CartOut)
+@router.post("/add")
 def add_to_cart(request:Request,
-    payload: CartAdd,
+    product_id: int = Form(...),
+    quantity: int = Form(...),
     db: Session = Depends(get_db),
-    
 ):
     current_user = request.state.user
-    product = db.query(Product).filter(Product.id == payload.product_id).first()
+    product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -34,18 +34,18 @@ def add_to_cart(request:Request,
         db.query(CartItem)
         .filter(
             CartItem.cart_id == cart.id,
-            CartItem.product_id == payload.product_id
+            CartItem.product_id == product_id
         )
         .first()
     )
 
     if item:
-        item.quantity += payload.quantity
+        item.quantity += quantity
     else:
         item = CartItem(
             cart_id=cart.id,
-            product_id=payload.product_id,
-            quantity=payload.quantity
+            product_id=product_id,
+            quantity=quantity
         )
         db.add(item)
 

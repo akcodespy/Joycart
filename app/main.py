@@ -18,8 +18,7 @@ from app.checkout import router as checkout_router
 from app.checkout import pages_router as checkout_pages_router
 from app.orders import router as order_router
 from app.orders import pages_router as order_pages_router
-from app.payments import router as payment_router
-from app.payments import pages_router as payments_pages_router
+
 
 
 Base.metadata.create_all(bind = engine)
@@ -40,14 +39,9 @@ app.include_router(checkout_router,prefix="/api",dependencies=[Depends(get_curre
 app.include_router(checkout_pages_router,dependencies=[Depends(get_current_user)])
 app.include_router(order_router,prefix="/api/orders",dependencies=[Depends(get_current_user)])
 app.include_router(order_pages_router, dependencies=[Depends(get_current_user)])
-app.include_router(payment_router,prefix="/api/payments",dependencies=[Depends(get_current_user)])
-app.include_router(payments_pages_router, dependencies=[Depends(get_current_user)])
 
 
 templates = Jinja2Templates(directory="templates")
-
-
-
 
 @app.get("/")
 def joycart(

@@ -2,15 +2,14 @@ document.getElementById("add-to-cart-btn").addEventListener("click", async funct
     const productId = this.dataset.productId;
     const quantity = document.getElementById("qty").value;
 
+    const formData = new FormData();
+    formData.append("product_id", productId);
+    formData.append("quantity", quantity);
+
     const response = await fetch("/api/cart/add", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            product_id: Number(productId),
-            quantity: Number(quantity)
-        })
+        body: formData,
+        credentials: "include"
     });
 
     if (response.status === 401) {
