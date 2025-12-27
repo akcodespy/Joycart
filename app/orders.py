@@ -52,27 +52,23 @@ def get_single_order(request: Request,
                 "subtotal": oi.price_at_purchase * oi.quantity
             }
             for oi, product in items
-        ]
+        ],
+        "payment": None
     }
-    if order.status == "PAID":
-        payment = (
+
+    payment = (
         db.query(Payment)
         .filter(Payment.order_id == order.id)
-        .first())
-        data["payment"]=payment.gateway_payment_id
-    if order.status == "REFUNDED":
-            payment = (
-            db.query(Payment)
-            .filter(
-                Payment.order_id == order.id,
-                Payment.status == "REFUNDED"
-            )
-            .order_by(Payment.created_at.desc())
-            .first()
-        )
+        .order_by(Payment.created_at.desc())
+        .first()
+    )
 
-            data["payment"] = payment.gateway_payment_id if payment else None
-
+    if payment:
+        data["payment"] = {
+            "method": payment.method,
+            "status": payment.status,
+            "gateway_id": payment.gateway_payment_id
+        }
 
     return data
 

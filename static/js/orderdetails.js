@@ -9,42 +9,34 @@ async function loadOrder() {
     container.innerHTML = `
         <p><b>Order ID:</b> ${order.id}</p>
         <p><b>Status:</b> ${order.status}</p>
-
+        <p><b>Total :</b> ₹${order.amount}</p>
+        <p><b>Payment:</b> ${order.payment
+    ? `${order.payment.method} (${order.payment.status}) ${
+        order.payment.gateway_id ?? "N/A"
+      }`
+    : "Not applicable"
+}</p>
         <hr>
+        <h2>Order Items</h2>
     `;
 
     order.items.forEach(item => {
         container.innerHTML += `
             <div style="margin-bottom:10px">
                 <p>${item.title}</p>
-                <p>Price: ₹${item.price}</p>
-                <p>Qty: ${item.quantity}</p>
-                <p>Subtotal: ₹${item.subtotal}</p>
+                <p><b>Price:</b> ₹${item.price}</p>
+                <p><b>Qty:</b> ${item.quantity}</p>
+                <p><b>Subtotal:</b> ₹${item.subtotal}</p>
             </div>
         `;
     });
 if (order.status === "PLACED"|| order.status === "PAID") {
         container.innerHTML += `
             <hr>
-            <p><b>Total : </b> ₹${order.amount}</p>
+            
             <button onclick="cancelOrder(${order.id})">
                 Cancel Order
             </button><br></br>
-        <a href="/">Home</a>
-    `;
-}
-else if (order.status === "REFUNDED"){
-        container.innerHTML += `
-        <hr>
-        <p><b>Total : </b> ₹${order.amount}</p>
-        <p><b>Refund ID:</b> ${order.payment}</p>
-        <a href="/">Home</a>
-    `;
-}
-else if (order.status === "CANCELLED") {
-    container.innerHTML += `
-        <hr>
-        <p><b>Total : </b> ₹${order.amount}</p>
         <a href="/">Home</a>
     `;
 }
