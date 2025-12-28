@@ -3,6 +3,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
+from fastapi import Header
+import os
+from datetime import datetime
 from app.models import Cart,Payment,Product,Checkout,OrderItems,Address,CartItem,Order
 import uuid
 
@@ -516,3 +519,24 @@ def payment_success(request:Request):
             "request": request
             }
     )
+
+@router.post("/internal/cleanup-checkouts")
+def cleanup_abandoned_checkouts(
+    db: Session = Depends(get_db),
+    x_cron_key: str = Header(None)
+):
+    if x_cron_key != os.getenv("CRON_SECRET"):
+        raise HTTPException(status_code=403)
+
+    now = datetime.utcnow()
+
+    deleted = db.query(Checkout).filter(
+        Checkout.expires_at < now
+    ).delete()
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "deleted_checkouts": deleted
+    }
