@@ -226,7 +226,7 @@ def select_payment_method(
 
     
     return RedirectResponse(
-        f"/payment/start?checkout_id={checkout_id}",
+        f"/checkout/prepaid/confirm?checkout_id={checkout_id}",
         status_code=302
     )
 

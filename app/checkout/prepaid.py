@@ -3,8 +3,9 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.db.db import get_db
-from app.db.models import Cart,Order,Payment,CartItem,Checkout,OrderItems,Product
 import os,uuid,hmac,hashlib
+from app.db.models import Checkout
+from app.checkout.helper import helper
 
 
 pages_router = APIRouter()
@@ -18,7 +19,7 @@ if not PAYMENT_WEBHOOK_SECRET:
 
 templates = Jinja2Templates(directory="templates")
 
-@pages_router.get("/payment/start")
+@pages_router.get("/checkout/prepaid/confirm")
 def prepaid_payment_page(
     request: Request,
     checkout_id: str,
@@ -45,11 +46,11 @@ def start_prepaid_payment(
     checkout_id: str = Form(...),
 ):
     return RedirectResponse(
-        f"/prepaid-gateway?checkout_id={checkout_id}",
+        f"/checkout/prepaid/gateway?checkout_id={checkout_id}",
         status_code=302
     )
 
-@pages_router.get("/prepaid-gateway")
+@pages_router.get("/checkout/prepaid/gateway")
 def fake_gateway_page(
     request: Request,
     checkout_id: str
@@ -69,14 +70,16 @@ def fake_gateway_page(
         }
     )
 
-@router.post("/payment/webhook")
-def payment_webhook(
+@router.post("/checkout/prepaid/webhook")
+def payment_webhook(request:Request,
     checkout_id: str = Form(...),
     payment_status: str = Form(...),
     signature: str = Form(...),
     gateway_payment_id: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    current_user = request.state.user
+
     payload = f"{checkout_id}|{payment_status}|{gateway_payment_id}"
 
 
@@ -90,102 +93,14 @@ def payment_webhook(
     
     if payment_status != "SUCCESS":
         raise HTTPException(400, "Payment failed")
-
-    checkout = db.query(Checkout).filter(
-        Checkout.checkout_id == checkout_id
-    ).first()
-
-    if not checkout:
-        raise HTTPException(404)
-
     
-    existing_order = db.query(Order).filter(
-        Order.checkout_id == checkout.checkout_id
-    ).first()
+    method = "PREPAID"
 
-    if existing_order:
-        return {"status": "already processed"}
+    helper(current_user,db,checkout_id,method,gateway_payment_id)
 
-    
-    cart = db.query(Cart).filter(
-        Cart.user_id == checkout.user_id
-    ).first()
+    return RedirectResponse("/checkout/prepaid/success", status_code=302)
 
-    if not cart or not cart.items:
-        raise HTTPException(400)
-
-    
-    product_ids = [item.product_id for item in cart.items]
-
-    products = (
-        db.query(Product)
-        .filter(Product.id.in_(product_ids))
-        .with_for_update()
-        .all()
-    )
-
-    product_map = {p.id: p for p in products}
-
-    total_amount = 0
-    order_items = []
-
-    for item in cart.items:
-        product = product_map[item.product_id]
-
-        if product.stock < item.quantity:
-            raise HTTPException(400, "Out of stock")
-
-        product.stock -= item.quantity
-        total_amount += product.price * item.quantity
-
-        order_items.append(
-            OrderItems(
-                product_id=product.id,
-                quantity=item.quantity,
-                seller_id=product.seller_id,
-                price_at_purchase=product.price
-            )
-        )
-
-    
-    order = Order(
-        user_id=checkout.user_id,
-        checkout_id=checkout.checkout_id,
-        amount=total_amount,
-        shipping_address=checkout.shipping_address,
-        status="PAID",
-        currency="INR"
-    )
-
-    db.add(order)
-    db.flush()
-
-    for oi in order_items:
-        oi.order_id = order.id
-
-    payment = Payment(
-        order_id=order.id,
-        amount=order.amount,
-        status="PAID",
-        method="PREPAID",
-        gateway_payment_id=gateway_payment_id
-        
-    )
-
-    db.add_all(order_items)
-    db.add(payment)
-
-    
-    db.query(CartItem).filter(
-        CartItem.cart_id == cart.id
-    ).delete()
-
-    db.delete(checkout)
-    db.commit()
-
-    return RedirectResponse("/payment/success", status_code=302)
-
-@pages_router.get("/payment/success")
+@pages_router.get("/checkout/prepaid/success")
 def payment_success(request:Request):
 
     return templates.TemplateResponse(

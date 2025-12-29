@@ -1,6 +1,6 @@
 <h2>Payment Gateway</h2>
 
-<form method="post" action="/api/payment/webhook">
+<form method="post" action="/api/checkout/prepaid/webhook">
   <input type="hidden" name="checkout_id" value="{{ checkout_id }}">
   <input type="hidden" name="payment_status" value="SUCCESS">
   <input type="hidden" name="signature" value="{{ signature }}">
