@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.db.db import get_db
-from app.db.db import models
+from app.db.models import User
 from dotenv import load_dotenv
 
 
@@ -58,8 +58,8 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
     user = (
-        db.query(models.User)
-        .filter(models.User.username == username)
+        db.query(User)
+        .filter(User.username == username)
         .first()
     )
 

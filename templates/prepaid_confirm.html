@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Payment Gateway</title>
+  <title>Payment Confirmation</title>
 </head>
 <body>
 
-  <h2>Payment Gateway</h2>
+  <h2>Confirm Payment
+</h2>
 
   <p><b>Amount to Pay:</b> ₹{{ amount }}</p>
   <p><b>Checkout ID:</b> {{ checkout_id }}</p>
 
   <form method="post" action="/api/checkout/prepaid/confirm">
     <input type="hidden" name="checkout_id" value="{{ checkout_id }}">
-    <button type="submit"onclick="allowConfirmNavigation()">Pay Now</button>
+    <button type="submit"onclick="allowConfirmNavigation()">Go to Payment Page</button>
   </form>
 
   <br>
