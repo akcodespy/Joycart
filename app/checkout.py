@@ -421,6 +421,7 @@ def fake_gateway_page(
     checkout_id: str
 ):
     payload = f"{checkout_id}|SUCCESS"
+    gateway_payment_id = f"PAY-{uuid.uuid4().hex[:12]}"
     signature = generate_signature(payload, PAYMENT_WEBHOOK_SECRET)
 
     return templates.TemplateResponse(
@@ -428,7 +429,8 @@ def fake_gateway_page(
         {
             "request": request,
             "checkout_id": checkout_id,
-            "signature": signature
+            "signature": signature,
+            "gateway_payment_id":gateway_payment_id
         }
     )
 
@@ -437,9 +439,11 @@ def payment_webhook(
     checkout_id: str = Form(...),
     payment_status: str = Form(...),
     signature: str = Form(...),
+    gateway_payment_id: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    payload = f"{checkout_id}|{payment_status}"
+    payload = f"{checkout_id}|{payment_status}|{gateway_payment_id}"
+
 
     expected_signature = generate_signature(
         payload,
@@ -528,8 +532,8 @@ def payment_webhook(
         order_id=order.id,
         amount=order.amount,
         status="PAID",
-        method="PREPAID",
-        gateway_payment_id= f"PAY-{uuid.uuid4().hex[:12]}"
+        method="PREPAID"
+        
     )
 
     db.add_all(order_items)
