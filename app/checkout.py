@@ -3,16 +3,17 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db import get_db
-from fastapi import Header
-import os
+import os,uuid,hmac,hashlib,dotenv
 from datetime import datetime,timedelta
 from app.models import Cart,Payment,Product,Checkout,OrderItems,Address,CartItem,Order
-import uuid
+
 
 router = APIRouter()
 pages_router = APIRouter()
 
-_last_cleanup = None
+_last_cleanup = None #lazy cleanup 
+
+PAYMENT_WEBHOOK_SECRET = os.getenv("PAYMENT_WEBHOOK_SECRET")
 
 templates = Jinja2Templates(directory="templates")
 
@@ -405,18 +406,6 @@ def prepaid_payment_page(
         }
     )
 
-@pages_router.get("/fake-gateway")
-def fake_gateway_page(
-    request: Request,
-    checkout_id: str
-):
-    return templates.TemplateResponse(
-        "fake_gateway.html",
-        {
-            "request": request,
-            "checkout_id": checkout_id
-        }
-    )
 @router.post("/checkout/prepaid/confirm")
 def start_prepaid_payment(
     checkout_id: str = Form(...),
@@ -431,11 +420,15 @@ def fake_gateway_page(
     request: Request,
     checkout_id: str
 ):
+    payload = f"{checkout_id}|SUCCESS"
+    signature = generate_signature(payload, PAYMENT_WEBHOOK_SECRET)
+
     return templates.TemplateResponse(
         "fake_gateway.html",
         {
             "request": request,
-            "checkout_id": checkout_id
+            "checkout_id": checkout_id,
+            "signature": signature
         }
     )
 
@@ -443,8 +436,18 @@ def fake_gateway_page(
 def payment_webhook(
     checkout_id: str = Form(...),
     payment_status: str = Form(...),
+    signature: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    payload = f"{checkout_id}|{payment_status}"
+
+    expected_signature = generate_signature(
+        payload,
+        PAYMENT_WEBHOOK_SECRET
+    )
+
+    if not hmac.compare_digest(signature, expected_signature):
+        raise HTTPException(403, "Invalid signature")
     
     if payment_status != "SUCCESS":
         raise HTTPException(400, "Payment failed")
@@ -525,13 +528,14 @@ def payment_webhook(
         order_id=order.id,
         amount=order.amount,
         status="PAID",
-        method="PREPAID"
+        method="PREPAID",
+        gateway_payment_id= f"PAY-{uuid.uuid4().hex[:12]}"
     )
 
     db.add_all(order_items)
     db.add(payment)
 
-    # 6. CLEANUP
+    
     db.query(CartItem).filter(
         CartItem.cart_id == cart.id
     ).delete()
@@ -565,3 +569,11 @@ def lazy_cleanup_checkouts(db):
 
     db.commit()
     _last_cleanup = now
+
+
+def generate_signature(payload: str, secret: str) -> str:
+    return hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()

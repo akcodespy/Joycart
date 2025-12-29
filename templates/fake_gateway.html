@@ -3,6 +3,7 @@
 <form method="post" action="/api/payment/webhook">
   <input type="hidden" name="checkout_id" value="{{ checkout_id }}">
   <input type="hidden" name="payment_status" value="SUCCESS">
+  <input type="hidden" name="signature" value="{{ signature }}">
 
   <button type="submit">Simulate Payment Success</button>
 </form>
