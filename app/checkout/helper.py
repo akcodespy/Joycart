@@ -1,5 +1,6 @@
 from fastapi import HTTPException
-from app.db.models import Cart,CartItem,Checkout,Payment,Order,OrderItems,Product
+from app.db.models import Cart,CartItem,Checkout,Payment,Order,OrderItems,Product,CheckoutItem
+from sqlalchemy.orm import Session
 
 
 def helper(current_user,db,checkout_id,method,gateway_payment_id):
@@ -24,17 +25,17 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
     if existing_order:
             raise HTTPException(409, "Order already processed")
 
-    cart = db.query(Cart).filter(
-            Cart.user_id == current_user.id
-        ).first()
+    checkout_items = db.query(CheckoutItem).filter(
+        CheckoutItem.checkout_id == checkout.id
+    ).all()
 
-    if not cart or not cart.items:
-            raise HTTPException(400, "Cart is empty")
+    if not checkout_items:
+        raise HTTPException(400, "No checkout items")
 
     total_amount = 0
     order_items = []
         
-    product_ids = [item.product_id for item in cart.items]
+    product_ids = [item.product_id for item in checkout_items]
     products = (
             db.query(Product)
             .filter(Product.id.in_(product_ids))
@@ -43,7 +44,7 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
         )
     product_map = {p.id: p for p in products}
 
-    for item in cart.items:
+    for item in checkout_items:
             product = product_map.get(item.product_id)
 
             if not product:
@@ -106,11 +107,53 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
     db.add(payment)
 
         
-    db.query(CartItem).filter(
-            CartItem.cart_id == cart.id
-        ).delete()
+    db.query(CheckoutItem).filter(
+        CheckoutItem.checkout_id == checkout.id
+    ).delete()
 
     db.delete(checkout)
     db.commit()
 
     return order
+
+
+def move_checkout_to_cart(checkout, db):
+    if checkout.mode != "BUY_NOW":
+        return
+
+    cart = db.query(Cart).filter(
+        Cart.user_id == checkout.user_id
+    ).first()
+
+    if not cart:
+        cart = Cart(user_id=checkout.user_id)
+        db.add(cart)
+        db.flush()
+
+    checkout_items = db.query(CheckoutItem).filter(
+        CheckoutItem.checkout_id == checkout.id
+    ).all()
+
+    for item in checkout_items:
+        existing = db.query(CartItem).filter(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == item.product_id
+        ).first()
+
+        if existing:
+            existing.quantity += item.quantity
+        else:
+            db.add(
+                CartItem(
+                    cart_id=cart.id,
+                    product_id=item.product_id,
+                    quantity=item.quantity
+                )
+            )
+
+    
+    db.query(CheckoutItem).filter(
+        CheckoutItem.checkout_id == checkout.id
+    ).delete()
+
+    db.delete(checkout)

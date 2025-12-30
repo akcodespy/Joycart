@@ -1,4 +1,4 @@
-document.getElementById("add-to-cart-btn").addEventListener("click", async function () {
+document.getElementById("buy-btn").addEventListener("click", async function () {
     const productId = this.dataset.productId;
     const quantity = document.getElementById("qty").value;
 
@@ -6,7 +6,7 @@ document.getElementById("add-to-cart-btn").addEventListener("click", async funct
     formData.append("product_id", productId);
     formData.append("quantity", quantity);
 
-    const response = await fetch("/api/cart/add", {
+    const response = await fetch("/api/checkout/buy-now", {
         method: "POST",
         body: formData,
         credentials: "include"
@@ -17,11 +17,12 @@ document.getElementById("add-to-cart-btn").addEventListener("click", async funct
         return;
     }
 
-    if (response.ok) {
-        alert("Added to cart ✅");
-    } else {
+    if (!response.ok) {
         const error = await response.json();
-        alert(error.detail || "Something went wrong");
+        alert(error.detail || "Buy now failed");
+        return;
     }
-});
 
+    const data = await response.json();
+    window.location.href = data.redirect_url;
+});

@@ -8,6 +8,7 @@ from app.db.models import Checkout
 from app.checkout.helper import helper
 
 
+
 pages_router = APIRouter()
 router = APIRouter()
 
@@ -81,6 +82,8 @@ def payment_webhook(request:Request,
     current_user = request.state.user
 
     payload = f"{checkout_id}|{payment_status}|{gateway_payment_id}"
+
+    checkout = db.query(Checkout).filter(Checkout.checkout_id == checkout_id).first()
 
 
     expected_signature = generate_signature(

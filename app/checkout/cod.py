@@ -34,7 +34,7 @@ def place_cod_order(
 
     method = "COD"
 
-    helper(current_user,db,checkout_id,method)
+    helper(current_user,db,checkout_id,method,None)
 
     return RedirectResponse(
         "/checkout/cod/success",

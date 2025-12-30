@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.db.db import get_db
-from app.db.models import Cart,Product,Checkout,Address,CartItem
+from app.db.models import Cart,Product,Checkout,Address,CartItem,CheckoutItem
 from datetime import datetime,timedelta
 import uuid
 
@@ -32,25 +32,82 @@ def start_checkout(
     if not cart or not cart.items:
         raise HTTPException(400, "Cart is empty")
 
+    product_ids = [item.product_id for item in cart.items]
+
+    products = db.query(Product).filter(
+        Product.id.in_(product_ids)
+    ).all()
+
+    product_map = {p.id: p for p in products}
+
     total_amount = 0
     for item in cart.items:
-        product = db.query(Product).filter(
-            Product.id == item.product_id
-        ).first()
+        product = product_map[item.product_id]
         total_amount += product.price * item.quantity
 
     checkout = Checkout(
         checkout_id=str(uuid.uuid4()),
         user_id=current_user.id,
-        amount=total_amount
+        amount=total_amount,
+        mode="CART"
     )
 
     db.add(checkout)
+    db.flush()  
+
+    for item in cart.items:
+        product = product_map[item.product_id]
+        checkout_item = CheckoutItem(
+            checkout_id=checkout.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            price_at_checkout=product.price
+        )
+        db.add(checkout_item)
+
     db.commit()
 
     return {
         "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
     }
+
+@router.post("/checkout/buy-now")
+def buy_now(
+    request: Request,
+    product_id: int = Form(...),
+    quantity: int = Form(...),
+    db: Session = Depends(get_db)
+):
+    current_user = request.state.user
+
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    checkout = Checkout(
+        checkout_id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        amount=product.price,
+        mode="BUY NOW"
+    )
+
+    db.add(checkout)
+    db.flush()
+
+    checkout_item = CheckoutItem(
+        checkout_id=checkout.id,
+        product_id=product.id,
+        quantity=quantity,
+        price_at_checkout=product.price
+    )
+
+    db.add(checkout_item)
+    db.commit()
+
+    return {
+        "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
+    }
+
 
 @pages_router.get("/checkout/address")
 def checkout_address_page(
@@ -127,7 +184,7 @@ def checkout_summary(
     db: Session = Depends(get_db)
 ):
     current_user = request.state.user
-    
+
     checkout = db.query(Checkout).filter(
         Checkout.checkout_id == checkout_id,
         Checkout.user_id == current_user.id
@@ -136,20 +193,12 @@ def checkout_summary(
     if not checkout or not checkout.shipping_address:
         raise HTTPException(400)
 
-    cart = db.query(Cart).filter(
-        Cart.user_id == current_user.id
-    ).first()
-
-    if not cart:
-        raise HTTPException(400, "Cart not found")
-
     items = (
-        db.query(CartItem, Product)
-        .join(Product, Product.id == CartItem.product_id)
-        .filter(CartItem.cart_id == cart.id)
+        db.query(CheckoutItem, Product)
+        .join(Product, Product.id == CheckoutItem.product_id)
+        .filter(CheckoutItem.checkout_id == checkout.id)
         .all()
     )
-
 
     return templates.TemplateResponse(
         "checkout_summary.html",
@@ -160,6 +209,9 @@ def checkout_summary(
             "checkout_id": checkout_id
         }
     )
+
+    
+             
 
 @router.post("/checkout/confirm")
 def confirm_checkout(

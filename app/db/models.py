@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float,Boolean,JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float,Boolean,JSON,Numeric
 from app.db.db import Base
 from sqlalchemy.orm import relationship
 from datetime import datetime,timedelta
@@ -80,8 +80,9 @@ class Checkout(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
+    mode = Column(String) 
+
     shipping_address = Column(JSON, nullable=True)
-    payment_method = Column(String, nullable=True)  # COD / CARD / UPI
 
     amount = Column(Integer, nullable=False)
 
@@ -89,7 +90,28 @@ class Checkout(Base):
     expires_at = Column(
         DateTime,
         default=lambda: datetime.utcnow() + timedelta(minutes=30)
-    )    
+    )   
+
+class CheckoutItem(Base):
+    __tablename__ = "checkout_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    checkout_id = Column(
+        ForeignKey("checkouts.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    product_id = Column(
+        ForeignKey("products.id"),
+        nullable=False
+    )
+
+    quantity = Column(Integer, nullable=False)
+    price_at_checkout = Column(Numeric(10, 2), nullable=False)
+     
+    product = relationship("Product")
+ 
 
 class Order(Base):
     __tablename__ = "orders"
