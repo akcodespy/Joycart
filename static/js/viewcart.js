@@ -1,51 +1,51 @@
 async function loadCart() {
     const response = await fetch("/api/cart/view", {
-    credentials: "include"
-});
+        credentials: "include"
+    });
     const data = await response.json();
-
-  
 
     const container = document.getElementById("cart-items");
     const totalEl = document.getElementById("cart-total");
     const orderBtn = document.getElementById("order-btn");
 
+    
     container.innerHTML = "";
 
-    if (data.items.length === 0) {
+    if (!data.items || data.items.length === 0) {
         container.innerHTML = "<p>Your cart is empty.</p>";
-        totalEl.innerText = "0";
-
+        totalEl.innerText = "0.00";
         orderBtn.disabled = true;
         return;
     }
 
     orderBtn.disabled = false;
 
-    let total = 0;
-
+   
+    let itemsHtml = "";
     data.items.forEach(item => {
-        total += item.subtotal;
-
-        container.innerHTML += `
+        itemsHtml += `
             <div class="item">
                 <img src="${item.thumbnail}" alt="">
                 <div>
                     <h4>${item.title}</h4>
                     <p>Price: ₹ ${item.price}</p>
-                    <p>Quantity:<button onclick="changeQty(${item.id}, ${item.quantity - 1})">−</button>
-                                <span style="margin: 0 10px">${item.quantity}</span>
-                                <button onclick="changeQty(${item.id}, ${item.quantity + 1})">+</button>
-                                </p>
+                    <p>Quantity:
+                        <button onclick="changeQty(${item.id}, ${item.quantity - 1})">−</button>
+                        <span style="margin: 0 10px">${item.quantity}</span>
+                        <button onclick="changeQty(${item.id}, ${item.quantity + 1})">+</button>
+                    </p>
                     <p>Remove Item:<button onclick="removeItem(${item.id})">X</button></p>
-
                     <p><b>Subtotal:</b> ₹ ${item.subtotal}</p>
                 </div>
             </div>
         `;
     });
 
-    totalEl.innerText = total.toFixed(2);
+    
+    container.innerHTML = itemsHtml;
+
+    
+    totalEl.innerText = data.total.toFixed(2);
 }
 async function changeQty(itemId, newQty) {
     if (newQty < 1) {

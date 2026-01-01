@@ -82,7 +82,7 @@ def get_cart(request: Request,
             "title": product.title,
             "price": product.price,
             "quantity": item.quantity,
-            "subtotal": f"{subtotal:.2f}",
+            "subtotal": subtotal,
             "thumbnail": product.thumbnail
         })
 

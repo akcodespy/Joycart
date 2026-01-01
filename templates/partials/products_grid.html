@@ -1,10 +1,30 @@
+<style>
+    .card {
+    position: relative; /* This is the boundary for the link */
+    transition: transform 0.2s; /* Optional: makes it feel interactive */
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Optional: lifts card on hover */
+}
+
+.stretched-link::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1; /* Makes the invisible layer sit on top of everything */
+}
+</style>
 <div class="grid">
     {% for p in products %}
         <div class="card">
-            <img src="{{ p.thumbnail }}" loading="lazy" alt="{{ p.title }}">
-            <h4>{{ p.title }}</h4>
-            <div class="price">₹{{ p.price }}</div>
-            <a href="/products/{{ p.id }}">View</a>
-        </div>
+    <img src="{{ p.thumbnail }}" loading="lazy" alt="{{ p.title }}">
+    <h4>{{ p.title }}</h4>
+    <div class="price">₹{{ p.price }}</div>
+    <a href="/products/{{ p.id }}" class="stretched-link"></a>
+</div>
     {% endfor %}
 </div>
