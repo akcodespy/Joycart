@@ -87,7 +87,7 @@ def buy_now(
     checkout = Checkout(
         checkout_id=str(uuid.uuid4()),
         user_id=current_user.id,
-        amount=product.price,
+        amount=product.price * quantity,
         mode="BUY NOW"
     )
 

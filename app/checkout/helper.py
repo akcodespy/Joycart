@@ -1,6 +1,5 @@
 from fastapi import HTTPException
-from app.db.models import Cart,CartItem,Checkout,Payment,Order,OrderItems,Product,CheckoutItem
-from sqlalchemy.orm import Session
+from app.db.models import Checkout,Payment,Order,OrderItems,Product,CheckoutItem
 
 
 def helper(current_user,db,checkout_id,method,gateway_payment_id):
@@ -55,7 +54,7 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
                     400, f"Insufficient stock for {product.title}"
                 )
 
-            subtotal = product.price * item.quantity
+            subtotal = item.price_at_checkout * item.quantity
             total_amount += subtotal
 
             product.stock -= item.quantity
@@ -65,9 +64,10 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
                     product_id=product.id,
                     quantity=item.quantity,
                     seller_id=product.seller_id,
-                    price_at_purchase=product.price
+                    price_at_purchase=item.price_at_checkout
                 )
             )
+
 
 
     if total_amount == 0:

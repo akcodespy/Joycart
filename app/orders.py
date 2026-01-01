@@ -129,7 +129,7 @@ def cancel_order(
 
     
     for item in order_items:
-        if item.status == "PENDING":
+        if item.status == "PLACED":
             item.status = "CANCELLED"
 
             
@@ -150,7 +150,7 @@ def cancel_order(
             order_id=order.id,
             amount=refund_amount,
             status="REFUNDED",
-            method="SYSTEM",
+            method="SYSTEM ",
             gateway_payment_id=f"REFUND-{uuid.uuid4().hex[:12]}"
         )
         db.add(payment)
