@@ -89,6 +89,14 @@ def get_all_orders(request: Request, db: Session = Depends(get_db)):
         }
     )
 
+@pages_router.get("/orders/{order_id}")
+def order_detail_page(request: Request):
+    return templates.TemplateResponse(
+        "orderdetails.html",
+        {"request": request}
+    )
+
+
 #######################################CANCEL AND REFUND ORDERS###################################
 
 @router.post("/{order_id}/cancel")
@@ -121,8 +129,8 @@ def cancel_entire_order(request:Request,
     for item in items:
         if item.status in ["PLACED", "ACCEPTED"]:
             restore_stock_for_item(item, db)
+            refund_order_item(item, db)  
             item.status = "CANCELLED"
-    order.status = "CANCELLED"
     db.commit()
 
     return {"message": "Order cancelled"}
@@ -157,17 +165,43 @@ def cancel_order_item(request:Request,
     
     restore_stock_for_item(item, db)
 
+    refund_order_item(item, db)
+
     item.status = "CANCELLED"
     db.commit()
 
     return {"message": "Item cancelled"}
 
-@pages_router.get("/orders/{order_id}")
-def order_detail_page(request: Request):
-    return templates.TemplateResponse(
-        "orderdetails.html",
-        {"request": request}
-    )
+
+
+def refund_order_item(item, db):
+
+    order = db.query(Order).filter(
+        Order.id == item.order_id
+    ).first()
+
+    if not order or order.status != "PAID":
+        return  
+
+    payment = db.query(Payment).filter(
+        Payment.order_id == order.id
+    ).with_for_update().first()
+
+    if not payment:
+        return
+
+    refund_amount = item.price_at_purchase * item.quantity
+
+    
+    if payment.amount < refund_amount:
+        return
+
+    payment.amount -= refund_amount
+
+    if payment.amount == 0:
+        payment.status = "REFUNDED"
+    else:
+        payment.status = "PARTIALLY_REFUNDED"
 
 def restore_stock_for_item(item, db):
     product = db.query(Product).filter(

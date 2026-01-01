@@ -287,12 +287,15 @@ def lazy_cleanup_checkouts(db):
 
     now = datetime.utcnow()
 
+
     if _last_cleanup and now - _last_cleanup < timedelta(minutes=10):
         return
 
     db.query(Checkout).filter(
         Checkout.expires_at < now
     ).delete()
+
+    db.query(CheckoutItem).delete()
 
     db.commit()
     _last_cleanup = now

@@ -83,9 +83,6 @@ def payment_webhook(request:Request,
 
     payload = f"{checkout_id}|{payment_status}|{gateway_payment_id}"
 
-    checkout = db.query(Checkout).filter(Checkout.checkout_id == checkout_id).first()
-
-
     expected_signature = generate_signature(
         payload,
         PAYMENT_WEBHOOK_SECRET

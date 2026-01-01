@@ -64,7 +64,8 @@ def helper(current_user,db,checkout_id,method,gateway_payment_id):
                     product_id=product.id,
                     quantity=item.quantity,
                     seller_id=product.seller_id,
-                    price_at_purchase=item.price_at_checkout
+                    price_at_purchase=item.price_at_checkout,
+                    status="PLACED"
                 )
             )
 

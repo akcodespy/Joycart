@@ -10,7 +10,7 @@ from cloudinary.utils import cloudinary_url
 import json,os
 from collections import defaultdict
 from app.auth import get_current_seller
-from app.orders import restore_stock_for_item
+from app.orders import restore_stock_for_item,refund_order_item
 
 
 router = APIRouter()
@@ -313,6 +313,8 @@ def seller_order_item_action(
             raise HTTPException(400, "Cannot cancel shipped item")
 
         restore_stock_for_item(item, db)
+
+        refund_order_item(item, db)
         
         item.status = "CANCELLED"
 
