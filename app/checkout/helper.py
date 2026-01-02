@@ -3,105 +3,131 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db.models import Checkout,Payment,Order,OrderItems,Product,CheckoutItem,Cart,CartItem
 
 
-def helper(current_user, db, checkout_id, method, gateway_payment_id):
+def helper(current_user,db,checkout_id,method,gateway_payment_id):
+
     try:
+
         order_status = "PLACED"
 
         checkout = db.query(Checkout).filter(
-            Checkout.checkout_id == checkout_id,
-            Checkout.user_id == current_user.id
-        ).first()
+                Checkout.checkout_id == checkout_id,
+                Checkout.user_id == current_user.id
+            ).first()
         if not checkout:
-            raise HTTPException(404)
-
+                raise HTTPException(404)
+        
         cart = db.query(Cart).filter(
-            Cart.user_id == current_user.id
-        ).first()
-
+        Cart.user_id == current_user.id
+    ).first()
+            
         existing_order = db.query(Order).filter(
-            Order.checkout_id == checkout.checkout_id
-        ).first()
+                    Order.checkout_id == checkout.checkout_id
+                ).first()
+
         if existing_order:
-            raise HTTPException(409, "Order already processed")
+                raise HTTPException(409, "Order already processed")
 
         checkout_items = db.query(CheckoutItem).filter(
             CheckoutItem.checkout_id == checkout.id
         ).all()
+
         if not checkout_items:
             raise HTTPException(400, "No checkout items")
-
-        product_ids = [item.product_id for item in checkout_items]
-        products = (
-            db.query(Product)
-            .filter(Product.id.in_(product_ids))
-            .with_for_update()
-            .all()
-        )
-        product_map = {p.id: p for p in products}
+        
+        if method not in ["COD", "CARD", "UPI","NETBANKING"]:
+            raise HTTPException(400, "Invalid payment method")
 
         total_amount = 0
         order_items = []
+            
+        product_ids = [item.product_id for item in checkout_items]
+        products = (
+                db.query(Product)
+                .filter(Product.id.in_(product_ids))
+                .with_for_update()
+                .all()
+            )
+        product_map = {p.id: p for p in products}
 
         for item in checkout_items:
-            product = product_map.get(item.product_id)
-            if not product or product.stock < item.quantity:
-                raise HTTPException(400, "Insufficient stock")
+                product = product_map.get(item.product_id)
 
-            product.stock -= item.quantity
-            total_amount += item.price_at_checkout * item.quantity
+                if not product:
+                    continue
 
-            order_items.append(
-                OrderItems(
-                    product_id=product.id,
-                    quantity=item.quantity,
-                    seller_id=product.seller_id,
-                    price_at_purchase=item.price_at_checkout,
-                    status="PLACED"
+                if product.stock < item.quantity:
+                    raise HTTPException(
+                        400, f"Insufficient stock for {product.title}"
+                    )
+
+                subtotal = item.price_at_checkout * item.quantity
+                total_amount += subtotal
+
+                product.stock -= item.quantity
+
+                order_items.append(
+                    OrderItems(
+                        product_id=product.id,
+                        quantity=item.quantity,
+                        seller_id=product.seller_id,
+                        price_at_purchase=item.price_at_checkout,
+                        status="PLACED"
+                    )
                 )
-            )
+
+
+
+        if total_amount == 0:
+                raise HTTPException(400, "Invalid cart")
 
         order = Order(
-            user_id=current_user.id,
-            amount=total_amount,
-            checkout_id=checkout.checkout_id,
-            shipping_address=checkout.shipping_address,
-            status=order_status,
-            currency="INR"
-        )
+                user_id=current_user.id,
+                amount=total_amount,
+                checkout_id=checkout.checkout_id,
+                shipping_address=checkout.shipping_address,
+                status=order_status,
+                currency="INR"
+            )
+
         db.add(order)
-        db.flush()
+        db.flush()   
 
         for oi in order_items:
-            oi.order_id = order.id
-
-        payment = Payment(
-            order_id=order.id,
-            amount=order.amount,
-            status="COD" if method == "COD" else "SUCCESS",
-            method=method,
-            gateway_payment_id=gateway_payment_id
-        )
+                oi.order_id = order.id
+        if method == "COD":
+            payment = Payment(
+                    order_id=order.id,
+                    amount=order.amount,
+                    status="PENDING",
+                    method="COD"
+            )
+        else:
+            payment = Payment(
+                    order_id=order.id,
+                    amount=order.amount,
+                    status="SUCCESS",
+                    method= method,
+                    gateway_payment_id = gateway_payment_id
+            )
 
         db.add_all(order_items)
         db.add(payment)
 
+            
         db.query(CheckoutItem).filter(
             CheckoutItem.checkout_id == checkout.id
         ).delete()
+
         db.delete(checkout)
 
         if checkout.mode == "CART" and cart:
             db.query(CartItem).filter(
                 CartItem.cart_id == cart.id
             ).delete()
-
         db.commit()
+
         return order
-
-    except HTTPException:
-        db.rollback()
-        raise
-
     except SQLAlchemyError:
         db.rollback()
-        raise HTTPException(500, "Failed to place order")
+        raise HTTPException(500, "Cancel failed")
+

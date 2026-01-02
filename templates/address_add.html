@@ -1,8 +1,13 @@
 <h2>Add Address</h2>
 
 <form method="post" action="/api/address/add">
-    <input type="hidden" name="redirect_to"
-         value="/checkout/address?checkout_id={{checkout_id}}">
+    {% if checkout_id %}
+    <input
+      type="hidden"
+      name="redirect_to"
+      value="/checkout/address?checkout_id={{ checkout_id }}"
+    >
+  {% endif %}
 
     <fieldset>
         <legend>Contact Details</legend>

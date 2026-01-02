@@ -94,8 +94,17 @@
 
       <div class="order-card">
         <h3>Order ID: {{ order_id }}</h3>
-        <p><strong>Payment:</strong> {{ order.payment_status }}</p>
-        
+          {% if order.payment_method == "COD" %}
+          <span class="badge cod">Cash on Delivery</span>
+
+          {% elif order.payment_status == "SUCCESS" %}
+          <span class="badge paid">PAID</span>
+
+          {% elif order.payment_status == "PENDING" %}
+            <span class="badge pending">Payment Pending</span>
+
+          {% endif %}
+              
         <div class="items-grid">
           
           {% for row in order["items"] %}

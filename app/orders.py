@@ -132,10 +132,13 @@ def cancel_entire_order(request:Request,
                 )
 
         for item in items:
-            if item.status in ["PLACED", "ACCEPTED"]:
-                restore_stock_for_item(item, db)
-                refund_order_item(item, db)  
+            if item.status in ["PLACED", "CONFIRMED"]:
+                restore_stock_for_item(item, db)  
                 item.status = "CANCELLED"
+
+        refund_entire_order(order, db) 
+            
+        order.status = "CANCELLED" 
         db.commit()
 
         return {"message": "Order cancelled"}
@@ -166,7 +169,7 @@ def cancel_order_item(request:Request,
         if not item:
             raise HTTPException(404)
 
-        if item.status not in ["PLACED", "ACCEPTED"]:
+        if item.status not in ["PLACED", "CONFIRMED"]:
             raise HTTPException(
                 400,
                 "This item cannot be cancelled"
@@ -177,15 +180,31 @@ def cancel_order_item(request:Request,
         refund_order_item(item, db)
 
         item.status = "CANCELLED"
+
         db.commit()
 
         return {"message": "Item cancelled"}
+    
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(500, "Failed to cancel order")
 
 
 
+def refund_entire_order(order, db):
+    payment = (
+        db.query(Payment)
+        .filter(Payment.order_id == order.id)
+        .with_for_update()
+        .first()
+    )
+
+    if not payment or payment.status != "SUCCESS":
+        return
+
+    payment.amount = 0
+    payment.status = "REFUNDED"
+    order.status = "REFUNDED"
 
 def refund_order_item(item, db):
 
@@ -194,16 +213,13 @@ def refund_order_item(item, db):
             Order.id == item.order_id
         ).first()
 
-        if not order or order.status != "PAID":
-            return  
-
         payment = db.query(Payment).filter(
             Payment.order_id == order.id
         ).with_for_update().first()
 
-        if not payment:
-            return
-
+        if not payment or payment.status != "SUCCESS":
+            return  
+        
         refund_amount = item.price_at_purchase * item.quantity
 
         
@@ -214,6 +230,7 @@ def refund_order_item(item, db):
 
         if payment.amount == 0:
             payment.status = "REFUNDED"
+            order.status = "REFUNDED"
         else:
             payment.status = "PARTIALLY_REFUNDED"
     except SQLAlchemyError:

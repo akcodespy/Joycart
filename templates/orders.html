@@ -15,19 +15,6 @@
     align-items: center;
   }
 
-  .status {
-    padding: 4px 10px;
-    border-radius: 4px;
-    color: white;
-    font-weight: bold;
-    text-transform: capitalize;
-  }
-
-  .status.placed { background: orange; }
-  .status.paid { background: green; }
-  .status.cancelled { background: red; }
-  .status.refunded { background: blue; }
-  .status.delivered { background: darkgreen; }
 </style>
 <title>Orders</title>
 <div class="orders-container">
@@ -41,10 +28,7 @@
       <p>Amount: ₹{{ o.amount }}</p>
       <a href="/orders/{{o.id}}">View details</a> 
     </div>
-    
-    <span class="status {{ o.status }}">
-      {{ o.status }}
-    </span>
+
   </div>
   
   
