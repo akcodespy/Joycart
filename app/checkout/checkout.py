@@ -6,14 +6,11 @@ from app.db.db import get_db
 from app.db.models import Cart,Product,Checkout,Address,CheckoutItem,User
 from datetime import datetime
 import uuid
+from sqlalchemy.exc import SQLAlchemyError
 from app.auth import get_current_user
 
 router = APIRouter()
 pages_router = APIRouter()
-
-_last_cleanup = None #lazy cleanup 
-
-
 
 templates = Jinja2Templates(directory="templates")
 
@@ -23,53 +20,58 @@ def start_checkout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    lazy_cleanup_checkouts(db)
+    try:
+        lazy_cleanup_checkouts(db)
 
-    cart = db.query(Cart).filter(
-        Cart.user_id == current_user.id
-    ).first()
+        cart = db.query(Cart).filter(
+            Cart.user_id == current_user.id
+        ).first()
 
-    if not cart or not cart.items:
-        raise HTTPException(400, "Cart is empty")
+        if not cart or not cart.items:
+            raise HTTPException(400, "Cart is empty")
 
-    product_ids = [item.product_id for item in cart.items]
+        product_ids = [item.product_id for item in cart.items]
 
-    products = db.query(Product).filter(
-        Product.id.in_(product_ids)
-    ).all()
+        products = db.query(Product).filter(
+            Product.id.in_(product_ids)
+        ).all()
 
-    product_map = {p.id: p for p in products}
+        product_map = {p.id: p for p in products}
 
-    total_amount = 0
-    for item in cart.items:
-        product = product_map[item.product_id]
-        total_amount += product.price * item.quantity
+        total_amount = 0
+        for item in cart.items:
+            product = product_map[item.product_id]
+            total_amount += product.price * item.quantity
 
-    checkout = Checkout(
-        checkout_id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        amount=total_amount,
-        mode="CART"
-    )
-
-    db.add(checkout)
-    db.flush()  
-
-    for item in cart.items:
-        product = product_map[item.product_id]
-        checkout_item = CheckoutItem(
-            checkout_id=checkout.id,
-            product_id=item.product_id,
-            quantity=item.quantity,
-            price_at_checkout=product.price
+        checkout = Checkout(
+            checkout_id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            amount=total_amount,
+            mode="CART"
         )
-        db.add(checkout_item)
 
-    db.commit()
+        db.add(checkout)
+        db.flush()  
 
-    return {
-        "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
-    }
+        for item in cart.items:
+            product = product_map[item.product_id]
+            checkout_item = CheckoutItem(
+                checkout_id=checkout.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                price_at_checkout=product.price
+            )
+            db.add(checkout_item)
+
+        db.commit()
+
+        return {
+            "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
+        }
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(500, "Checkout start failed")
 
 @router.post("/checkout/buy-now")
 def buy_now(
@@ -79,34 +81,37 @@ def buy_now(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    try:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            raise HTTPException(404, "Product not found")
 
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
+        checkout = Checkout(
+            checkout_id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            amount=product.price * quantity,
+            mode="BUY NOW"
+        )
 
-    checkout = Checkout(
-        checkout_id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        amount=product.price * quantity,
-        mode="BUY NOW"
-    )
+        db.add(checkout)
+        db.flush()
 
-    db.add(checkout)
-    db.flush()
+        checkout_item = CheckoutItem(
+            checkout_id=checkout.id,
+            product_id=product.id,
+            quantity=quantity,
+            price_at_checkout=product.price
+        )
 
-    checkout_item = CheckoutItem(
-        checkout_id=checkout.id,
-        product_id=product.id,
-        quantity=quantity,
-        price_at_checkout=product.price
-    )
+        db.add(checkout_item)
+        db.commit()
 
-    db.add(checkout_item)
-    db.commit()
-
-    return {
-        "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
-    }
+        return {
+            "redirect_url": f"/checkout/address?checkout_id={checkout.checkout_id}"
+        }
+    except SQLAlchemyError:
+            db.rollback()
+            raise HTTPException(500, "Buy Now failed")
 
 
 @pages_router.get("/checkout/address")

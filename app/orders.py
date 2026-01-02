@@ -4,6 +4,7 @@ from app.db.db import get_db
 from fastapi.templating import Jinja2Templates
 from app.db.models import Order, OrderItems, Product,Payment, User
 from app.auth import get_current_user
+from sqlalchemy.exc import SQLAlchemyError
 
 
 router = APIRouter()
@@ -110,34 +111,38 @@ def cancel_entire_order(request:Request,
 ):
     
     
+    try:
+        order = db.query(Order).filter(
+            Order.id == order_id,
+            Order.user_id == current_user.id
+        ).first()
 
-    order = db.query(Order).filter(
-        Order.id == order_id,
-        Order.user_id == current_user.id
-    ).first()
+        if not order:
+            raise HTTPException(404)
 
-    if not order:
-        raise HTTPException(404)
+        items = db.query(OrderItems).filter(
+            OrderItems.order_id == order.id
+        ).all()
 
-    items = db.query(OrderItems).filter(
-        OrderItems.order_id == order.id
-    ).all()
+        for item in items:
+            if item.status in ["SHIPPED", "DELIVERED"]:
+                raise HTTPException(
+                    400,
+                    "Cannot cancel order after shipping one item"
+                )
 
-    for item in items:
-        if item.status in ["SHIPPED", "DELIVERED"]:
-            raise HTTPException(
-                400,
-                "Cannot cancel order after shipping one item"
-            )
+        for item in items:
+            if item.status in ["PLACED", "ACCEPTED"]:
+                restore_stock_for_item(item, db)
+                refund_order_item(item, db)  
+                item.status = "CANCELLED"
+        db.commit()
 
-    for item in items:
-        if item.status in ["PLACED", "ACCEPTED"]:
-            restore_stock_for_item(item, db)
-            refund_order_item(item, db)  
-            item.status = "CANCELLED"
-    db.commit()
+        return {"message": "Order cancelled"}
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(500, "Cancel failed")
 
-    return {"message": "Order cancelled"}
 
 
 @router.post("/item/{item_id}/cancel")
@@ -147,65 +152,73 @@ def cancel_order_item(request:Request,
     db: Session = Depends(get_db)
 ):
     
-
-    item = (
-        db.query(OrderItems)
-        .join(Order)
-        .filter(
-            OrderItems.id == item_id,
-            Order.user_id == current_user.id
+    try:
+        item = (
+            db.query(OrderItems)
+            .join(Order)
+            .filter(
+                OrderItems.id == item_id,
+                Order.user_id == current_user.id
+            )
+            .first()
         )
-        .first()
-    )
 
-    if not item:
-        raise HTTPException(404)
+        if not item:
+            raise HTTPException(404)
 
-    if item.status not in ["PLACED", "ACCEPTED"]:
-        raise HTTPException(
-            400,
-            "This item cannot be cancelled"
-        )
-    
-    restore_stock_for_item(item, db)
+        if item.status not in ["PLACED", "ACCEPTED"]:
+            raise HTTPException(
+                400,
+                "This item cannot be cancelled"
+            )
+        
+        restore_stock_for_item(item, db)
 
-    refund_order_item(item, db)
+        refund_order_item(item, db)
 
-    item.status = "CANCELLED"
-    db.commit()
+        item.status = "CANCELLED"
+        db.commit()
 
-    return {"message": "Item cancelled"}
+        return {"message": "Item cancelled"}
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(500, "Failed to cancel order")
+
 
 
 
 def refund_order_item(item, db):
 
-    order = db.query(Order).filter(
-        Order.id == item.order_id
-    ).first()
+    try:
+        order = db.query(Order).filter(
+            Order.id == item.order_id
+        ).first()
 
-    if not order or order.status != "PAID":
-        return  
+        if not order or order.status != "PAID":
+            return  
 
-    payment = db.query(Payment).filter(
-        Payment.order_id == order.id
-    ).with_for_update().first()
+        payment = db.query(Payment).filter(
+            Payment.order_id == order.id
+        ).with_for_update().first()
 
-    if not payment:
-        return
+        if not payment:
+            return
 
-    refund_amount = item.price_at_purchase * item.quantity
+        refund_amount = item.price_at_purchase * item.quantity
 
-    
-    if payment.amount < refund_amount:
-        return
+        
+        if payment.amount < refund_amount:
+            return
 
-    payment.amount -= refund_amount
+        payment.amount -= refund_amount
 
-    if payment.amount == 0:
-        payment.status = "REFUNDED"
-    else:
-        payment.status = "PARTIALLY_REFUNDED"
+        if payment.amount == 0:
+            payment.status = "REFUNDED"
+        else:
+            payment.status = "PARTIALLY_REFUNDED"
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(500, "Refund failed")
 
 def restore_stock_for_item(item, db):
     product = db.query(Product).filter(

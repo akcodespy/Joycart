@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends,Request,Form, File, UploadFile,HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi.templating import Jinja2Templates
 from app.db.db import get_db
 from app.db.models import Seller,Product,OrderItems,Payment,Order
@@ -8,7 +9,6 @@ from fastapi import BackgroundTasks
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 import json,os
-from collections import defaultdict
 from app.auth import get_current_seller,get_current_user
 from app.orders import restore_stock_for_item,refund_order_item
 from app.db.models import User
@@ -279,8 +279,7 @@ def get_seller_order(request: Request,
             payment = payment_map.get(order.id)
 
             grouped_orders[order.id] = {
-                "payment_status": payment.status if payment else "NOT_PAID",
-                "payment_method": payment.method if payment else "UNKNOWN",
+                "payment_status": payment.status,
                 "items": []
             }
 
@@ -304,49 +303,66 @@ def seller_order_item_action(
     seller: Seller = Depends(get_current_seller),
     db: Session = Depends(get_db)
 ):
-    item = db.query(OrderItems).filter(
-        OrderItems.id == item_id,
-        OrderItems.seller_id == seller.id
-    ).first()
+    try:
+        item = (
+            db.query(OrderItems)
+            .join(Order)
+            .filter(
+                OrderItems.id == item_id,
+                OrderItems.seller_id == seller.id
+            )
+            .first()
+        )
 
-    if not item:
-        raise HTTPException(404, "Order item not found")
+        if not item:
+            raise HTTPException(404, "Order item not found")
 
-    valid_transitions = {
-        "PLACED": ["CONFIRM", "CANCEL"],
-        "CONFIRMED": ["SHIP", "CANCEL"],
-        "SHIPPED": ["DELIVER"],
-    }
 
-    current_status = item.status
-    action = action.upper()
+        valid_transitions = {
+            "PLACED": ["CONFIRM", "CANCEL"],
+            "CONFIRMED": ["SHIP", "CANCEL"],
+            "SHIPPED": ["DELIVER"],
+        }
 
-    if current_status not in valid_transitions:
-        raise HTTPException(400, "Action not allowed")
+        current_status = item.status
+        action = action.upper()
 
-    if action not in valid_transitions[current_status]:
-        raise HTTPException(400, "Invalid action for this status")
+        if current_status not in valid_transitions:
+            raise HTTPException(400, "Action not allowed")
+
+        if action not in valid_transitions[current_status]:
+            raise HTTPException(400, "Invalid action for this status")
 
     
-    if action == "CONFIRM":
-        item.status = "CONFIRMED"
-    elif action == "SHIP":
-        item.status = "SHIPPED"
-    elif action == "DELIVER":
-        item.status = "DELIVERED"
-    elif action == "CANCEL":
-        if item.status in ["SHIPPED", "DELIVERED"]:
-            raise HTTPException(400, "Cannot cancel shipped item")
+        if action == "CONFIRM":
+            item.status = "CONFIRMED"
+        elif action == "SHIP":
+            item.status = "SHIPPED"
+        elif action == "DELIVER":
+            item.status = "DELIVERED"
+        elif action == "CANCEL":
+            if item.status in ["SHIPPED", "DELIVERED"]:
+                raise HTTPException(400, "Cannot cancel shipped item")
 
-        restore_stock_for_item(item, db)
+            restore_stock_for_item(item, db)
 
-        refund_order_item(item, db)
-        
-        item.status = "CANCELLED"
+            refund_order_item(item, db)
+            
+            item.status = "CANCELLED"
 
-    db.commit()
+        db.commit()
 
-    return RedirectResponse(
-        "/seller/orders",
-        status_code=302
-    )
+        return RedirectResponse(
+            "/seller/orders",
+            status_code=302
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Database error while processing order"
+        )
