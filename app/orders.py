@@ -68,6 +68,7 @@ def get_single_order(request: Request,
         .first()
     )
 
+
     if payment:
         data["payment"] = {
             "method": payment.method,
@@ -213,13 +214,13 @@ def refund_entire_order(order, db):
         refund = Refund(
             payment_id=payment.id,
             amount=payment.amount,
-            reason="ORDER_CANCELLED"
+            reason="ORDER_CANCELLED",
+            status="REFUNDED",
+            orderitem_id=None
         )
 
         db.add(refund)
 
-        
-        payment.status = "REFUNDED"
         order.status = "REFUNDED"
 
     except SQLAlchemyError:
@@ -244,7 +245,9 @@ def refund_order_item(item, db):
         refund = Refund(
             payment_id=payment.id,
             amount=item.price_at_purchase * item.quantity,
-            reason="ITEM_CANCELLED"
+            reason="ITEM_CANCELLED",
+            status="REFUNDED",
+            orderitem_id=item.id
         )
 
         db.add(refund)

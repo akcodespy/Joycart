@@ -30,13 +30,14 @@ async function loadReviews() {
         return;
     }
 
-    reviews.forEach(r => {
+        reviews.forEach(r => {
         const div = document.createElement("div");
         div.className = "review";
 
         div.innerHTML = `
-            <div class="review-rating">Rating: ${r.rating} / 5</div>
-            ${r.comment ? `<div>${r.comment}</div>` : ""}
+            <div class="review-user"><b>${r.username}</b></div><br>
+            <div class="review-rating">Rating: ${r.rating} / 5</div><br>
+            ${r.comment ? `<div class="review-comment">Review :${r.comment}</div>` : ""}
         `;
 
         container.appendChild(div);

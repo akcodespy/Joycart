@@ -31,7 +31,18 @@ async function loadOrder() {
             <p><b>Item Status:</b> ${item.status}</p>
             
     `;
+    let displayStatus = item.status;
+    
+if (item.status === "CANCELLED") {
+    displayStatus = "REFUNDED";
+    itemHtml += `
+    <p><b>Refund Status:</b> ${displayStatus}</p>
+`;
+}
 
+
+
+    
     if (["PLACED", "CONFIRMED"].includes(item.status)) {
         itemHtml += `
             <button onclick="cancelItem(${item.item_id})">

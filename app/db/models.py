@@ -12,6 +12,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False) 
     is_seller = Column(Boolean, default=False)
+    seller_id = Column(Integer, unique=True, nullable=True)
 
 class Address(Base):
     __tablename__ = "addresses"
@@ -20,7 +21,7 @@ class Address(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    name = Column(String, nullable=False)          # Receiver name
+    name = Column(String, nullable=False)          
     phone = Column(String, nullable=False)
 
     address_line1 = Column(String, nullable=False)
@@ -175,8 +176,10 @@ class Refund(Base):
 
     id = Column(Integer, primary_key=True)
     payment_id = Column(Integer, ForeignKey("payments.id"))
+    orderitem_id = Column(Integer, ForeignKey("order_items.id"))
     amount = Column(Integer)
     reason = Column(String)
+    status = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Review(Base):

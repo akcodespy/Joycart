@@ -59,7 +59,10 @@ def register_seller(
     db.commit()
     db.refresh(seller)
 
-    if current_user.id == 1:
+    current_user.seller_id = seller.id
+
+    if seller.id == 1 or seller.id == 2:
+        
         background_tasks.add_task(populate_products, db, seller.id)
 
     return RedirectResponse("/seller/dashboard", status_code=302)
@@ -190,7 +193,13 @@ def create_product(
 
 
 def populate_products(db: Session, seller_id: int):
-    with open("products.json", "r", encoding="utf-8") as f:
+
+    if seller_id ==1:
+        file = "products1.json"
+    else:
+        file = "products2.json"
+
+    with open(file, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     for item in data.get("products", []):

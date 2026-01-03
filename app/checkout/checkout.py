@@ -40,7 +40,14 @@ def start_checkout(
 
         total_amount = 0
         for item in cart.items:
+
             product = product_map[item.product_id]
+
+            if product.seller_id == current_user.seller_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="You cannot checkout your own product"
+                )
             total_amount += product.price * item.quantity
 
         checkout = Checkout(
@@ -85,6 +92,12 @@ def buy_now(
         product = db.query(Product).filter(Product.id == product_id).first()
         if not product:
             raise HTTPException(404, "Product not found")
+        
+        if product.seller_id == current_user.seller_id:
+            raise HTTPException(
+                status_code=400,
+                detail="You cannot buy your own product"
+            )
 
         checkout = Checkout(
             checkout_id=str(uuid.uuid4()),

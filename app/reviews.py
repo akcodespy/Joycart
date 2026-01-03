@@ -65,17 +65,21 @@ def load_reviews(
     product_id: int,
     db: Session = Depends(get_db)
 ):
-    reviews = db.query(Review).filter(
-        Review.product_id == product_id
-    ).order_by(Review.created_at.desc()).all()
-
+    reviews = (
+        db.query(Review, User.username)
+        .join(User, User.id == Review.user_id)
+        .filter(Review.product_id == product_id)
+        .order_by(Review.created_at.desc())
+        .all()
+    )
     return [
         {
-            "rating": r.rating,
-            "comment": r.comment,
-            "created_at": r.created_at
+            "username": username,
+            "rating": review.rating,
+            "comment": review.comment,
+            "created_at": review.created_at
         }
-        for r in reviews
+        for review, username in reviews
     ]
 
 

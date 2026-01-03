@@ -22,6 +22,12 @@ def add_to_cart(request:Request,
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    if product.seller_id == current_user.seller_id:
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot buy your own product"
+        )
 
     
     cart = db.query(Cart).filter(Cart.user_id == current_user.id).first()
