@@ -104,52 +104,6 @@ def order_detail_page(request: Request):
 
 
 #######################################CANCEL AND REFUND ORDERS###################################
-
-@router.post("/{order_id}/cancel")
-def cancel_entire_order(request:Request,
-    order_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    
-    
-    try:
-        order = db.query(Order).filter(
-            Order.id == order_id,
-            Order.user_id == current_user.id
-        ).first()
-
-        if not order:
-            raise HTTPException(404)
-
-        items = db.query(OrderItems).filter(
-            OrderItems.order_id == order.id
-        ).all()
-
-        for item in items:
-            if item.status in ["SHIPPED", "DELIVERED"]:
-                raise HTTPException(
-                    400,
-                    "Cannot cancel order after shipping one item"
-                )
-
-        for item in items:
-            if item.status in ["PLACED", "CONFIRMED"]:
-                restore_stock_for_item(item, db)  
-                item.status = "CANCELLED"
-
-        refund_entire_order(order, db) 
-            
-        order.status = "CANCELLED" 
-        db.commit()
-
-        return {"message": "Order cancelled"}
-    except SQLAlchemyError:
-        db.rollback()
-        raise HTTPException(500, "Cancel failed")
-
-
-
 @router.post("/item/{item_id}/cancel")
 def cancel_order_item(request:Request,
     item_id: int,

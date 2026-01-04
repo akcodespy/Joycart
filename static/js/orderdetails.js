@@ -23,7 +23,7 @@ async function loadOrder() {
     order.items.forEach(item => {
     let itemHtml = `
         <div style="margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:6px">
-            <img src="${item.thumbnail}" width="100" alt="${item.title}">
+            <a href = "/products/${item.product_id}"><img src="${item.thumbnail}" width="100" alt="${item.title}"></a>
             <p><b>${item.title}</b></p>
             <p><b>Price:</b> ₹${item.price}</p>
             <p><b>Qty:</b> ${item.quantity}</p>
@@ -61,38 +61,12 @@ const canCancelOrder = order.items.every(
     item => cancellableStatuses.includes(item.status)
 );
 
-if (canCancelOrder && order.status !== "CANCELLED") {
+
     container.innerHTML += `
         <hr>
-        <button onclick="cancelOrder(${order.id})">
-            Cancel Order
-        </button><br><br>
         <a href="/">Home</a>
     `;
-} else {
-    container.innerHTML += `<a href="/">Home</a>`;
-}
-
-}
-async function cancelOrder(orderId) {
-    
-    const confirmCancel = confirm("Are you sure you want to cancel this order?");
-    if (!confirmCancel) return;
-
-    const res = await fetch(`/api/orders/${orderId}/cancel`, {
-        method: "POST",});
-
-    if (!res.ok) {
-        const errorData = await res.json();
-        alert(errorData.detail || "Unable to cancel order");
-        return;
-    }
-
-    alert("Order cancelled successfully");
-
-    window.location.reload();
-
-}
+} 
 async function cancelItem(itemId) {
     const confirmCancel = confirm("Are you sure you want to cancel this item?");
     if (!confirmCancel) return;
