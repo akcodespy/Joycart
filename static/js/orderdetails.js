@@ -23,7 +23,7 @@ async function loadOrder() {
     order.items.forEach(item => {
     let itemHtml = `
         <div style="margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:6px">
-            <a href = "/products/${item.product_id}"><img src="${item.thumbnail}" width="100" alt="${item.title}"></a>
+           <a href ="/products/${item.product_id}"> <img src="${item.thumbnail}" width="100" alt="${item.title}"></a>
             <p><b>${item.title}</b></p>
             <p><b>Price:</b> ₹${item.price}</p>
             <p><b>Qty:</b> ${item.quantity}</p>
@@ -40,9 +40,6 @@ if (item.status === "CANCELLED") {
 `;
 }
 
-
-
-    
     if (["PLACED", "CONFIRMED"].includes(item.status)) {
         itemHtml += `
             <button onclick="cancelItem(${item.item_id})">
@@ -55,13 +52,6 @@ if (item.status === "CANCELLED") {
 
     container.innerHTML += itemHtml;
 });
-const cancellableStatuses = ["PLACED", "ACCEPTED"];
-
-const canCancelOrder = order.items.every(
-    item => cancellableStatuses.includes(item.status)
-);
-
-
     container.innerHTML += `
         <hr>
         <a href="/">Home</a>
