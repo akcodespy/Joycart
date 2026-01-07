@@ -504,6 +504,8 @@ def seller_order_item_action(
     seller: Seller = Depends(get_current_seller),
     db: Session = Depends(get_db)
 ):
+    refund = None 
+
     try:
         item = (
             db.query(OrderItems)
@@ -518,6 +520,8 @@ def seller_order_item_action(
         if not item:
             raise HTTPException(404, "Order item not found")
 
+        if item.status == "CANCELLED":
+            return RedirectResponse("/seller/orders", status_code=302)
 
         valid_transitions = {
             "PLACED": ["CONFIRM", "CANCEL"],
@@ -525,48 +529,41 @@ def seller_order_item_action(
             "SHIPPED": ["DELIVER"],
         }
 
-        current_status = item.status
         action = action.upper()
 
-        if current_status not in valid_transitions:
+        if item.status not in valid_transitions:
             raise HTTPException(400, "Action not allowed")
 
-        if action not in valid_transitions[current_status]:
+        if action not in valid_transitions[item.status]:
             raise HTTPException(400, "Invalid action for this status")
 
-    
         if action == "CONFIRM":
             item.status = "CONFIRMED"
+
         elif action == "SHIP":
             item.status = "SHIPPED"
+
         elif action == "DELIVER":
             item.status = "DELIVERED"
+
         elif action == "CANCEL":
             if item.status in ["SHIPPED", "DELIVERED"]:
                 raise HTTPException(400, "Cannot cancel shipped item")
 
             restore_stock_for_item(item, db)
-
             item.status = "CANCELLED"
-            
             refund = create_refund_record(item, db)
 
-        db.commit()
+        db.commit()  
 
         if action == "CANCEL":
-            initiate_razorpay_refund(refund, db)
+            initiate_razorpay_refund(refund, db)  
 
-        return RedirectResponse(
-            "/seller/orders",
-            status_code=302
-        )
-    except HTTPException:
-        db.rollback()
-        raise
+        return RedirectResponse("/seller/orders", status_code=302)
 
-    except SQLAlchemyError:
+    except Exception as e:  
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail="Database error while processing order"
+            detail=f"Database / gateway error: {str(e)}"
         )
