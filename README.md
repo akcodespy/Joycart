@@ -1,84 +1,143 @@
-# 🛒 JoyCart – E-commerce Backend (FastAPI)
+# 🛒 JoyCart – Full-Stack E-commerce Backend (FastAPI)
 
-JoyCart is a backend-focused e-commerce application built using **FastAPI** and **SQLAlchemy** with real payment and refund handling via **Razorpay**.
+JoyCart is a **backend-first e-commerce application** built with **FastAPI**, focusing on real-world order flows, payments, refunds, seller operations, and webhook-driven state management.
 
-This project focuses on **backend correctness**, **payment workflows**, and **real-world edge cases** rather than frontend polish.
-
----
-
-## 🚀 Features
-
-### 👤 Authentication
-- JWT-based user authentication
-- Role-based access (User / Seller)
-
-### 🛍️ Products
-- Seller product creation, editing, deletion
-- Image uploads using Cloudinary
-- Stock management
-
-### 🛒 Orders & Checkout
-- Cart → Checkout → Order flow
-- Prevents duplicate order creation
-- Order items tracked individually
-
-### 💳 Payments (Razorpay)
-- Online payments via Razorpay
-- Secure webhook verification
-- Payment confirmation handled asynchronously
-
-### 🔄 Refund System (Important)
-- Item-level cancellation
-- Refund initiation via Razorpay API
-- Refund status updated **only via webhooks**
-- Supports partial refunds (per item)
+This project was built to **learn and demonstrate production-style backend design**, especially around **payments, refunds, and transactional safety**.
 
 ---
 
-## 🔁 Refund Flow (How It Works)
+## 🧱 Architecture Overview
 
-Refunds are **asynchronous** and handled in a production-safe way.
+JoyCart follows a **layered backend architecture**:
 
-### 1️⃣ Cancel Item
-- User or Seller cancels an order item
-- Stock is restored
-- Refund record is created with status `INITIATED`
+- **API Layer** – FastAPI routers (users, sellers, cart, checkout, orders)
+- **Business Logic Layer** – order creation, stock handling, refunds
+- **Persistence Layer** – SQLAlchemy ORM with PostgreSQL / SQLite
+- **External Services**
+  - Razorpay (payments & refunds)
+  - Cloudinary (image storage)
 
-### 2️⃣ Refund Initiation
-- Backend calls Razorpay Refund API
-- Razorpay returns a `gateway_refund_id`
-- Refund remains `INITIATED`
-
-### 3️⃣ Webhook Confirmation
-- Razorpay sends `refund.processed` webhook
-- Backend verifies signature
-- Refund status updated to `REFUNDED`
-
-> ⚠️ The system **never assumes** a refund is successful until the webhook confirms it.
+The system is designed to be **state-driven**, meaning:
+> UI never guesses payment/refund status — everything is read from the database.
 
 ---
 
-## 🔐 Webhook Security
+## 🔐 Authentication & Roles
 
-- All Razorpay webhooks are verified using HMAC SHA256
+### 👤 Users
+- JWT-based authentication
+- Can:
+  - Browse products
+  - Add to cart
+  - Checkout
+  - Cancel individual order items
+  - View order & refund status
+
+### 🧑‍💼 Sellers
+- Separate seller authentication
+- Can:
+  - Create / edit / delete products
+  - Upload images (thumbnail + gallery)
+  - Manage stock
+  - Update order item status (confirm, ship, deliver, cancel)
+
+---
+
+## 🛍️ Product Management
+
+- Products belong to a seller
+- Fields include:
+  - Price & discount
+  - Stock quantity
+  - Availability status
+  - Dimensions stored as JSON
+- Images handled via **Cloudinary**
+- Product edits support **partial updates**
+- Seller ownership is strictly enforced
+
+---
+
+## 🛒 Cart & Checkout Flow
+
+1. User adds items to cart
+2. Cart validates stock
+3. Checkout session is created with expiry
+4. Razorpay order is generated
+5. Payment is completed asynchronously
+6. Order is created only after payment confirmation
+
+Duplicate order creation is prevented using:
+- checkout ownership checks
+- idempotent order creation logic
+
+---
+
+## 💳 Payments (Razorpay)
+
+- Razorpay Orders API used for payment initiation
+- Payments are confirmed **only via webhook**
+- Signature verification using HMAC SHA256
+- Payment status stored in DB (`SUCCESS`, `FAILED`, etc.)
+
+The backend **never trusts frontend payment success**.
+
+---
+
+## 🔄 Refund System (Key Feature)
+
+Refunds are implemented in a **production-correct, webhook-based way**.
+
+### Refund Design Principles
+- Refunds are **asynchronous**
+- Database state is committed **before** calling Razorpay
+- Refund success is **never assumed**
+- Final status is updated **only via webhook**
+
+### Refund Flow
+
+1. User/Seller cancels an order item
+2. Item status → `CANCELLED`
+3. Stock is restored
+4. Refund record created (`INITIATED`)
+5. Razorpay refund API is called
+6. Razorpay sends webhook:
+   - `refund.processed` → status becomes `REFUNDED`
+   - `refund.failed` → status becomes `FAILED`
+
+Refunds are **item-level**, allowing partial refunds per order.
+
+---
+
+## 📡 Webhooks
+
+### Supported Razorpay Events
+- `payment.captured`
+- `refund.processed`
+- `refund.failed`
+
+### Security
+- All webhooks verified using Razorpay webhook secret
 - Invalid signatures are ignored
-- Prevents fake payment / refund confirmations
+- Webhooks are idempotent and safe to retry
 
 ---
 
-## 🧠 Important Backend Design Decisions
+## 🧠 Transaction & Error Handling
 
-- **Database state is always committed before external API calls**
-- External failures (Razorpay) do not corrupt DB state
-- Refunds are idempotent and safe to retry
-- UI reads payment/refund state **only from database**, never from assumptions
+- External API calls happen **after DB commit**
+- Database consistency is preserved even if Razorpay fails
+- Refund retries are safe
+- Duplicate cancellations are prevented
+- Seller and user flows share the same refund logic
 
 ---
 
-## 🧪 Local Development (Payments)
+## ☁️ Deployment & Environment
 
-Razorpay webhooks require a **public URL**.
+### Local Development
+- SQLite database
+- Razorpay TEST mode
+- **ngrok required** for webhook testing
 
-### Use ngrok:
 ```bash
 ngrok http 8000
