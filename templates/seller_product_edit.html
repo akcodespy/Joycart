@@ -127,7 +127,25 @@
 
     <br>
 
-    <button type="submit">Update Product</button> Please wait after clicking the button,upload might take few seconds
-    
-
+    <button type="submit" id="submit-btn">
+        Update Product
+    </button>
+    <span id="wait-text" style="display:none;">
+        Please wait, uploading images…
+    </span>
 </form>
+
+
+<script>
+document.querySelector("form").addEventListener("submit", function () {
+    const btn = document.getElementById("submit-btn");
+    const waitText = document.getElementById("wait-text");
+
+    btn.disabled = true;
+    
+    btn.innerText = "Please wait...";
+
+    waitText.style.display = "inline";
+});
+</script>
+
