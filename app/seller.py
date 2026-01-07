@@ -233,51 +233,58 @@ def edit_product_page(
 
 
 
+# file: seller_products.py
+
 @router.post("/seller/products/editfn/{product_id}")
 def edit_product(
-    product_id :int,
+    product_id: int,
+
     title: str = Form(...),
     description: str = Form(...),
     category: str = Form(...),
     sku: str = Form(...),
-    price: float = Form(...),
+    price: Decimal = Form(...),
     discountPercentage: float = Form(0),
     stock: int = Form(...),
     availabilityStatus: str = Form(...),
     returnPolicy: str = Form(""),
+
     weight: int = Form(None),
     length: float = Form(None),
     width: float = Form(None),
     height: float = Form(None),
+
     shippingInformation: str = Form(""),
     warrantyInformation: str = Form(""),
+
     thumbnail: UploadFile = File(None),
-    images: list[UploadFile] = File(None),
-    db: Session = Depends(get_db),seller: Seller = Depends(get_current_seller)
-    ):
-    
+    images: list[UploadFile] = File([]),
+
+    db: Session = Depends(get_db),
+    seller: Seller = Depends(get_current_seller)
+):
+
     product = db.query(Product).filter(
         Product.id == product_id,
         Product.seller_id == seller.id
     ).first()
 
     if not product:
-        raise HTTPException(
-            status_code=404,
-            detail="Product not found"
-        )
+        raise HTTPException(404, "Product not found")
 
-    
+    uploaded_public_ids = []
+
     try:
+        
         if thumbnail and thumbnail.filename:
-            uploaded_public_ids = []
-
-            thumb_result = cloudinary.uploader.upload(
+            result = cloudinary.uploader.upload(
                 thumbnail.file,
                 folder=f"products/{seller.id}/thumbnail"
             )
 
-            public_id = thumb_result["public_id"]
+            public_id = result["public_id"]
+            uploaded_public_ids.append(public_id)
+
             thumbnail_url, _ = cloudinary_url(
                 public_id,
                 width=300,
@@ -287,21 +294,25 @@ def edit_product(
                 fetch_format="auto",
                 quality="auto"
             )
-            uploaded_public_ids.append(public_id)
 
-            
+            product.thumbnail = thumbnail_url  
 
+       
         if images:
-            image_urls = []
+            new_image_urls = []
 
             for img in images:
-                if not img or not img.filename:
+                if not img.filename:
                     continue
+
                 result = cloudinary.uploader.upload(
                     img.file,
                     folder=f"products/{seller.id}/images"
                 )
+
                 public_id = result["public_id"]
+                uploaded_public_ids.append(public_id)
+
                 url, _ = cloudinary_url(
                     public_id,
                     width=1000,
@@ -311,21 +322,24 @@ def edit_product(
                     fetch_format="auto",
                     quality="auto"
                 )
-                uploaded_public_ids.append(public_id)
-                image_urls.append(url)
 
+                new_image_urls.append(url)
 
-                
+            if new_image_urls:
+                product.images = new_image_urls  
+
+        
         if any(v is not None for v in (length, width, height)):
-            dimensions = {
+            product.dimensions = {
                 "length": length,
                 "width": width,
                 "height": height
             }
         else:
-            dimensions = None
+            product.dimensions = None
 
-        product.title =  title
+        
+        product.title = title
         product.description = description
         product.category = category
         product.sku = sku
@@ -335,23 +349,19 @@ def edit_product(
         product.availabilityStatus = availabilityStatus
         product.returnPolicy = returnPolicy
         product.weight = weight
-        product.dimensions = dimensions
         product.shippingInformation = shippingInformation
         product.warrantyInformation = warrantyInformation
-        product.thumbnail = thumbnail_url
-        product.images = image_urls
-
 
         db.commit()
-        
+
     except Exception:
         db.rollback()
         for pid in uploaded_public_ids:
             cloudinary.uploader.destroy(pid)
         raise
-   
 
     return RedirectResponse("/seller/products", status_code=302)
+
     
 
 @router.post("/seller/products/delete/{product_id}")
