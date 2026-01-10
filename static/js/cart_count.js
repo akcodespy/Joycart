@@ -1,7 +1,7 @@
 
 async function loadCartCount() {
   try {
-    const res = await fetch("/api/cart/count", {
+    const res = await fetch("/cart/count", {
   credentials: "include"
 })
 
