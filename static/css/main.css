@@ -1557,4 +1557,49 @@ a {
   font-size: 14px;
   color: #dc2626;
 }
+/* =========================
+   BECOME SELLER PAGE
+   ========================= */
 
+.seller-register-wrapper {
+  max-width: 420px;
+  margin: 40px auto;
+}
+
+.seller-register-card {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.seller-register-card h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.seller-register-card label {
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.seller-register-card input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.seller-register-card input:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+
+.seller-register-card button {
+  width: 100%;
+}

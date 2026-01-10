@@ -1,8 +1,24 @@
-<h2>Become a Seller</h2>
+{% extends "base.html" %}
 
-<form method="post" action="/seller/register">
-    <label>Store name</label><br>
-    <input name="store_name" required><br><br>
+{% block title %}Become a Seller{% endblock %}
 
-    <button type="submit">Register as Seller</button>
-</form>
+{% block content %}
+
+<div class="seller-register-wrapper">
+  <div class="seller-register-card">
+
+    <h2>Become a Seller</h2>
+
+    <form method="post" action="/seller/register">
+      <label>Store name</label>
+      <input name="store_name" required>
+
+      <button type="submit" class="btn btn-primary">
+        Register as Seller
+      </button>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

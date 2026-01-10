@@ -69,18 +69,25 @@ def register_seller(
     return RedirectResponse("/seller/dashboard", status_code=302)
 
 @pages_router.get("/seller/dashboard")
-def seller_dashboard(request: Request,seller: Seller = Depends(get_current_seller)):
+def seller_dashboard(request: Request,
+        seller: Seller = Depends(get_current_seller),
+        db: Session = Depends(get_db)):
+    
+    seller = db.query(Seller).filter(Seller.id == seller.id).first()
     return templates.TemplateResponse(
         "seller_dashboard.html",
-        {"request": request
+        {"request": request,
+         "store_name":seller.store_name.upper()
          }
     )
 
 @pages_router.get("/seller/registerform")
-def seller_register_page(request: Request):
+def seller_register_page(request: Request,
+        current_user: User = Depends(get_current_user)):
     return templates.TemplateResponse(
         "seller_register.html",
-        {"request": request}
+        {"request": request,
+         "current_user":current_user}
     )
 
 
