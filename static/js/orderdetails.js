@@ -72,9 +72,11 @@ document.getElementById("order-status").innerHTML = `
     `;
   }
 
-    if (["CANCELLED"].includes(item.status)) {
-    actions.innerHTML = `Refund Status : ${item.refund_status}`;
-  }
+if (item.status === "CANCELLED") {
+  actions.innerHTML = `Refund Status : ${
+    item.refund_status ?? "NO_REFUND_FOR_COD_ORDERS"
+  }`;
+}
 
 
   document.getElementById("delivery-box").innerHTML = `

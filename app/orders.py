@@ -179,23 +179,19 @@ def cancel_order_item(
 
         restore_stock_for_item(item, db)
 
-        if payment and payment.method == "COD":
+        if payment.method == "COD":
+            payment.status = "NOT_REQUIRED"
 
-                refund = Refund(
-                payment_id=payment.id,
-                amount=item.price_at_purchase * item.quantity,
-                reason="ITEM_CANCELLED",
-                status="NO_REFUND_FOR_COD_ORDERS",
-                orderitem_id=item.id
-            )
-                payment.status = "NOT_REQUIRED"  
-                db.add(refund)
-        
         else:
-            refund = create_refund_record(item,payment,db)
-            db.flush()   
-            initiate_razorpay_refund(refund, db)
-            
+            existing_refund = db.query(Refund).filter(
+                Refund.orderitem_id == item.id
+            ).first()
+
+            if not existing_refund:
+                refund = create_refund_record(item, payment, db)
+                db.flush()
+                initiate_razorpay_refund(refund, db)
+                
         db.commit()
         return {"message": "Item cancelled"}
 
@@ -212,7 +208,7 @@ def create_refund_record(item,payment,db):
     refund = Refund(
             payment_id=payment.id,
             gateway_payment_id=payment.gateway_payment_id,
-            amount=item.price_at_purchase * item.quantity,
+            amount = Decimal(item.price_at_purchase) * Decimal(item.quantity),
             reason="ITEM_CANCELLED",
             status="INITIATED",
             orderitem_id=item.id
