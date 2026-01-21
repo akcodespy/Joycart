@@ -6,7 +6,7 @@ from app.db.db import get_db
 from fastapi.templating import Jinja2Templates
 from app.auth import hash_password, verify_password, create_access_token,get_current_user
 from app.db.models import User, Address,Seller
-from app.product import list_products
+from app.redis import get_all_products_cached
 
 
 router = APIRouter()
@@ -117,9 +117,7 @@ def home(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    products = list_products(db)
-
-    user = db.query(User).filter(User.id == current_user.id).first()
+    products = get_all_products_cached(db)  #use (products = list_products(db)) in case of db
 
     if current_user.is_seller:
         seller = (
@@ -131,7 +129,7 @@ def home(
         if seller:
             products = [
                 p for p in products
-                if p.seller_id != seller.id
+                if p["seller_id"] != seller.id    # use (if p.seller_id != seller.id) in case of db .
             ]
 
     return templates.TemplateResponse(

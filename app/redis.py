@@ -26,13 +26,14 @@ def product_to_dict(product):
         "title": product.title,
         "price": float(product.price),
         "thumbnail": product.thumbnail,
-        "discountPercentage":product.discountPercentage
+        "discountPercentage":product.discountPercentage,
+        "seller_id": product.seller_id
     }
 
 
 CACHE_KEY = os.getenv("CACHE_KEY")
 
-def get_homepage_products(db: Session):
+def get_all_products_cached(db: Session):
     cached_products = get_cache(CACHE_KEY)
 
     if cached_products:
@@ -43,5 +44,5 @@ def get_homepage_products(db: Session):
     products = list_products(db)
     products_data = [product_to_dict(p) for p in products]
 
-    set_cache(CACHE_KEY, products_data, ttl=60)
+    set_cache(CACHE_KEY, products_data, ttl=120)
     return products_data

@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user
 from app.db.db import Base, engine,get_db
-from app.redis import get_homepage_products
+from app.redis import get_all_products_cached
 from app.user import router as user_router
 from app.user import pages_router as user_pages_router
 from app.seller import router as seller_router
@@ -63,7 +63,7 @@ def joycart(
     if token:
         return RedirectResponse("/home")
 
-    products = get_homepage_products(db)
+    products = get_all_products_cached(db)
 
     return templates.TemplateResponse(
         "joycart.html",
