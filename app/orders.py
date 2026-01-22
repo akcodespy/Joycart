@@ -5,8 +5,6 @@ from fastapi.templating import Jinja2Templates
 from app.db.models import Order, OrderItems, Product,Payment, User,Refund
 from app.auth import get_current_user
 from app.checkout.checkout import razorpay_client 
-from app.redis import redis_client
-import json
 from decimal import Decimal, ROUND_HALF_UP
 
 
@@ -99,39 +97,13 @@ def get_single_order_item(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    cache_key = f"orderitem:{current_user.id}:{item_id}"
-
-    cached = redis_client.get(cache_key)
-    if cached:
-        return json.loads(cached)
-
     row = (
-        db.query(
-            OrderItems,
-            Order,
-            Product,
-            Refund.status.label("refund_status"),
-            Payment.method.label("payment_method"),
-            Payment.status.label("payment_status"),
-            Payment.gateway_payment_id.label("gateway_id"),
-        )
+        db.query(OrderItems, Order, Product)
         .join(Order, Order.id == OrderItems.order_id)
         .join(Product, Product.id == OrderItems.product_id)
-        .outerjoin(
-            Refund,
-            Refund.orderitem_id == OrderItems.id,
-        )
-        .outerjoin(
-            Payment,
-            Payment.order_id == Order.id,
-        )
         .filter(
             OrderItems.id == item_id,
-            Order.user_id == current_user.id,
-        )
-        .order_by(
-            Refund.created_at.desc().nullslast(),
-            Payment.created_at.desc().nullslast(),
+            Order.user_id == current_user.id
         )
         .first()
     )
@@ -139,23 +111,29 @@ def get_single_order_item(
     if not row:
         raise HTTPException(status_code=404, detail="Order item not found")
 
-    (
-        oi,
-        order,
-        product,
-        refund_status,
-        payment_method,
-        payment_status,
-        gateway_id,
-    ) = row
+    oi, order, product = row
 
-    data = {
+    refund_status = (
+        db.query(Refund.status)
+        .filter(Refund.orderitem_id == oi.id)
+        .order_by(Refund.created_at.desc())
+        .scalar()
+    )
+
+    payment = (
+        db.query(Payment)
+        .filter(Payment.order_id == order.id)
+        .order_by(Payment.created_at.desc())
+        .first()
+    )
+
+    return {
         "item": {
             "item_id": oi.id,
             "order_id": order.id,
             "product_id": product.id,
             "title": product.title,
-            "price": float(oi.price_at_purchase),
+            "price": oi.price_at_purchase,
             "quantity": oi.quantity,
             "status": oi.status,
             "refund_status": refund_status,
@@ -164,22 +142,19 @@ def get_single_order_item(
         },
         "order": {
             "status": order.status,
-            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "created_at": order.created_at,
             "shipping_address": order.shipping_address,
         },
         "payment": (
             {
-                "method": payment_method,
-                "status": payment_status,
-                "gateway_id": gateway_id,
+                "method": payment.method,
+                "status": payment.status,
+                "gateway_id": payment.gateway_payment_id,
             }
-            if payment_method
+            if payment
             else None
         ),
     }
-
-    redis_client.setex(cache_key, 900, json.dumps(data)) 
-    return data
 
 
 @pages_router.get("/orders")
