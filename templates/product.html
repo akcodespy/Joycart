@@ -17,20 +17,20 @@
 
   <div class="product-thumbs">
     {% for img in product.images %}
-      <img
-        src="{{ img }}"
+        <img
+        src="{{ img | replace('/upload/', '/upload/w_1000,h_1000,c_fit,q_auto,f_auto/') }}"
         class="thumb {% if loop.first %}active{% endif %}"
-        onclick="setMainImage(this.src)"
+        onclick="setMainImage(this.src, this)"
       >
     {% endfor %}
   </div>
 
   <div class="product-main-image">
     <img
-      id="main-product-image"
-      src="{{ product.images[0] }}"
-      alt="{{ product.title }}"
-    >
+  id="main-product-image"
+  src="{{ product.images[0] | replace('/upload/', '/upload/w_1000,h_1000,c_fit,q_auto,f_auto/') }}"
+  alt="{{ product.title }}"
+>
   </div>
 
 </div>
@@ -146,16 +146,16 @@
 <script>
 
 
-  function setMainImage(src) {
-    const mainImg = document.getElementById("main-product-image");
-    mainImg.src = src;
+  function setMainImage(src, el) {
+  const mainImg = document.getElementById("main-product-image");
+  mainImg.src = src;
 
-    document.querySelectorAll(".thumb").forEach(t => {
-      t.classList.remove("active");
-    });
+  document.querySelectorAll(".thumb").forEach(t => {
+    t.classList.remove("active");
+  });
 
-    event.target.classList.add("active");
-  }
+  el.classList.add("active");
+}
 </script>
 
 

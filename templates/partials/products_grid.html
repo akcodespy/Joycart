@@ -1,7 +1,7 @@
 <div class="grid">
   {% for p in products %}
     <div class="product-card">
-      <img src="{{ p.thumbnail }}" loading="lazy" alt="{{ p.title }}">
+      <img src="{{ p.thumbnail | replace('/upload/', '/upload/w_300,h_300,c_fill,q_auto,f_auto/') }}" loading="lazy" alt="{{ p.title }}">
       <h4>{{ p.title }}</h4>
       <b><div class="price">₹{{ p.price }}</b></div>
       <div class="discountPercentage">{{p.discountPercentage}}% off</div>

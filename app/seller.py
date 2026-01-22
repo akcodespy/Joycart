@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends,Request,Form, File, UploadFile,HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 from fastapi.templating import Jinja2Templates
 from app.db.db import get_db
 from app.db.models import Seller,Product,OrderItems,Payment,Order
@@ -20,14 +19,6 @@ router = APIRouter()
 pages_router = APIRouter()
 
 templates = Jinja2Templates(directory="templates")
-
-cloudinary.config(
-    cloud_name=os.getenv("CLOUD_NAME"),
-    api_key=os.getenv("API_KEY"),
-    api_secret=os.getenv("API_SECRET"),
-    secure=True
-)
-
 
 
 ####################Seller Register##################
@@ -102,9 +93,9 @@ def seller_product_add(request: Request,seller: Seller = Depends(get_current_sel
         {"request": request}
     )
 
+
 @router.post("/seller/product/create")
 def create_product(
-    request: Request,
     title: str = Form(...),
     description: str = Form(...),
     category: str = Form(...),
@@ -121,100 +112,49 @@ def create_product(
     shippingInformation: str = Form(""),
     warrantyInformation: str = Form(""),
 
-    
-    thumbnail: UploadFile = File(...),
-    images: list[UploadFile] = File(...),
+    thumbnail: str = Form(...),
+    images: str = Form("[]"),
 
-    db: Session = Depends(get_db),seller: Seller = Depends(get_current_seller)
+    db: Session = Depends(get_db),
+    seller: Seller = Depends(get_current_seller)
 ):
     existing = db.query(Product).filter(
         Product.sku == sku,
         Product.seller_id == seller.id
     ).first()
-
     if existing:
         raise HTTPException(400, "SKU already exists")
-    
-    uploaded_public_ids = []
-    try:
-        thumb_result = cloudinary.uploader.upload(
-            thumbnail.file,
-            folder=f"products/{seller.id}/thumbnail"
-        )
-        
-        public_id = thumb_result["public_id"]
-        thumbnail_url, _  = cloudinary_url(
-        public_id,
-        width=300,
-        height=300,
-        crop="fill",
-        gravity="auto",
-        fetch_format="auto",
-        quality="auto"
+
+    dimensions = (
+        {"length": length, "width": width, "height": height}
+        if any(v is not None for v in (length, width, height))
+        else None
     )
-        uploaded_public_ids.append(public_id)
-        
-            
-        image_urls = [] 
 
-        for img in images:
-            result = cloudinary.uploader.upload(
-                img.file,
-                folder=f"products/{seller.id}/images"
-            )
-            public_id = result["public_id"]
-            url, _ = cloudinary_url(
-        public_id,
-        width=1000,
-        height=1000,
-        crop="fill",
-        gravity="auto",
-        fetch_format="auto",
-        quality="auto"
+    product = Product(
+        seller_id=seller.id,
+        title=title,
+        description=description,
+        category=category,
+        sku=sku,
+        price=price,
+        discountPercentage=discountPercentage,
+        stock=stock,
+        availabilityStatus=availabilityStatus,
+        returnPolicy=returnPolicy,
+        weight=weight,
+        dimensions=dimensions,
+        shippingInformation=shippingInformation,
+        warrantyInformation=warrantyInformation,
+        thumbnail=thumbnail,
+        images=json.loads(images),
     )
-            uploaded_public_ids.append(public_id)
-            image_urls.append(url)
 
-    
-        if any(v is not None for v in (length, width, height)):
-            dimensions = {
-                "length": length,
-                "width": width,
-                "height": height
-            }
-        else:
-            dimensions = None
-    
-        product = Product(
-            seller_id=seller.id,
-            title=title,
-            description=description,
-            category=category,
-            sku=sku,
-            price=price,
-            discountPercentage=discountPercentage,
-            stock=stock,
-            availabilityStatus=availabilityStatus,
-            returnPolicy=returnPolicy,
-            weight=weight,
-            dimensions=dimensions,
-            shippingInformation=shippingInformation,
-            warrantyInformation=warrantyInformation,
-            thumbnail=thumbnail_url,
-            images=image_urls,
-        )
-
-        db.add(product)
-        db.commit()
-
-    except Exception:
-        db.rollback()
-        for pid in uploaded_public_ids:
-            cloudinary.uploader.destroy(pid)
-        raise
-
+    db.add(product)
+    db.commit()
 
     return RedirectResponse("/seller/dashboard", status_code=302)
+
 
 @pages_router.get("/seller/products/edit/{product_id}")
 def edit_product_page(
@@ -264,13 +204,13 @@ def edit_product(
     shippingInformation: str = Form(""),
     warrantyInformation: str = Form(""),
 
-    thumbnail: UploadFile = File(None),
-    images: list[UploadFile] = File([]),
+    
+    thumbnail: str = Form(None),
+    images: str = Form(None),
 
     db: Session = Depends(get_db),
     seller: Seller = Depends(get_current_seller)
 ):
-
     product = db.query(Product).filter(
         Product.id == product_id,
         Product.seller_id == seller.id
@@ -279,95 +219,35 @@ def edit_product(
     if not product:
         raise HTTPException(404, "Product not found")
 
-    uploaded_public_ids = []
+    
+    if thumbnail:
+        product.thumbnail = thumbnail
 
-    try:
-        
-        if thumbnail and thumbnail.filename:
-            result = cloudinary.uploader.upload(
-                thumbnail.file,
-                folder=f"products/{seller.id}/thumbnail"
-            )
+    if images:
+        product.images = json.loads(images)
 
-            public_id = result["public_id"]
-            uploaded_public_ids.append(public_id)
+    product.title = title
+    product.description = description
+    product.category = category
+    product.sku = sku
+    product.price = price
+    product.discountPercentage = discountPercentage
+    product.stock = stock
+    product.availabilityStatus = availabilityStatus
+    product.returnPolicy = returnPolicy
+    product.weight = weight
+    product.shippingInformation = shippingInformation
+    product.warrantyInformation = warrantyInformation
 
-            thumbnail_url, _ = cloudinary_url(
-                public_id,
-                width=300,
-                height=300,
-                crop="fill",
-                gravity="auto",
-                fetch_format="auto",
-                quality="auto"
-            )
+    product.dimensions = (
+        {"length": length, "width": width, "height": height}
+        if any(v is not None for v in (length, width, height))
+        else None
+    )
 
-            product.thumbnail = thumbnail_url  
-
-       
-        if images:
-            new_image_urls = []
-
-            for img in images:
-                if not img.filename:
-                    continue
-
-                result = cloudinary.uploader.upload(
-                    img.file,
-                    folder=f"products/{seller.id}/images"
-                )
-
-                public_id = result["public_id"]
-                uploaded_public_ids.append(public_id)
-
-                url, _ = cloudinary_url(
-                    public_id,
-                    width=1000,
-                    height=1000,
-                    crop="fill",
-                    gravity="auto",
-                    fetch_format="auto",
-                    quality="auto"
-                )
-
-                new_image_urls.append(url)
-
-            if new_image_urls:
-                product.images = new_image_urls  
-
-        
-        if any(v is not None for v in (length, width, height)):
-            product.dimensions = {
-                "length": length,
-                "width": width,
-                "height": height
-            }
-        else:
-            product.dimensions = None
-
-        
-        product.title = title
-        product.description = description
-        product.category = category
-        product.sku = sku
-        product.price = price
-        product.discountPercentage = discountPercentage
-        product.stock = stock
-        product.availabilityStatus = availabilityStatus
-        product.returnPolicy = returnPolicy
-        product.weight = weight
-        product.shippingInformation = shippingInformation
-        product.warrantyInformation = warrantyInformation
-
-        db.commit()
-
-    except Exception:
-        db.rollback()
-        for pid in uploaded_public_ids:
-            cloudinary.uploader.destroy(pid)
-        raise
-
+    db.commit()
     return RedirectResponse("/seller/products", status_code=302)
+
 
     
 
