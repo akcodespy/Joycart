@@ -253,6 +253,8 @@
 
 <script>
 
+let uploadedThumbnailUrl = null;
+
 async function getSignature(folder) {
   const res = await fetch(`/cloudinary/sign?folder=${folder}`);
   return res.json();
@@ -310,6 +312,9 @@ document.getElementById("thumbnailInput")
     img.src = data.secure_url;
     document.getElementById("thumbnailUrl").value = data.secure_url;
 
+    uploadedThumbnailUrl = data.secure_url;
+
+
     thumbDone = true;
     checkReady();
 });
@@ -322,6 +327,10 @@ document.getElementById("imagesInput")
     preview.innerHTML = "";
 
     const urls = [];
+
+    if (uploadedThumbnailUrl) {
+  urls.push(uploadedThumbnailUrl);
+}
 
     for (const file of e.target.files) {
 
@@ -340,7 +349,11 @@ document.getElementById("imagesInput")
   alert("One image failed to upload. Check console.");
   continue;
 }
-      urls.push(data.secure_url);
+
+
+      if (!urls.includes(data.secure_url)) {
+  urls.push(data.secure_url);
+}
     }
 
     // ✅ 4. save all URLs
