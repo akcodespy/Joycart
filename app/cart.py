@@ -62,35 +62,44 @@ def add_to_cart(request:Request,
 
     return cart
 
+# cart.py
+
 @router.get("/view")
-def get_cart(request: Request,
+def get_cart(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    
 ):
-    
-    cart = db.query(Cart).filter(Cart.user_id == current_user.id).first()
+    cart = (
+        db.query(Cart)
+        .filter(Cart.user_id == current_user.id)
+        .first()
+    )
 
     if not cart:
         return {"items": [], "total": 0}
 
-    items = []
     total = 0
+    items = []
 
-    for item in cart.items:
-        product = db.query(Product).filter(Product.id == item.product_id).first()
-        if not product:
-            continue
+    cart_rows = (
+        db.query(CartItem, Product)
+        .join(Product, CartItem.product_id == Product.id)
+        .filter(CartItem.cart_id == cart.id)
+        .order_by(CartItem.id.asc())   
+        .all()
+    )
 
-        subtotal = product.price * item.quantity
+    for cart_item, product in cart_rows:
+        subtotal = product.price * cart_item.quantity
         total += subtotal
 
         items.append({
-            "id": item.id,
+            "id": cart_item.id,
             "product_id": product.id,
             "title": product.title,
             "price": product.price,
-            "quantity": item.quantity,
+            "quantity": cart_item.quantity,
             "subtotal": subtotal,
             "thumbnail": product.thumbnail
         })
@@ -98,7 +107,6 @@ def get_cart(request: Request,
     return {
         "items": items,
         "total": total
-    
     }
 
 
