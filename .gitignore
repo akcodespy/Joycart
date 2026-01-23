@@ -1,2 +1,6 @@
 .env
 app.db
+query.sql
+app.__pycache
+app.db.__pycache
+app.checkout.__pycache
