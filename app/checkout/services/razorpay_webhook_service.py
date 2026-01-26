@@ -50,10 +50,10 @@ def handle_payment_captured(
         return {"status": "ignored"}
 
     place_order(
-        user=user,
+        current_user=user,
         db=db,
         checkout_id=checkout.checkout_id,
-        payment_method=method,
+        method=method,
         gateway_payment_id=razorpay_payment_id
     )
 
