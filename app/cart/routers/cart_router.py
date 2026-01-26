@@ -50,7 +50,7 @@ def delete_quantity_endpoint(request: Request,
     db: Session = Depends(get_db),
     
 ):
-    return delete_quantity(item_id,current_user)
+    return delete_quantity(item_id,current_user,db)
     
 
 

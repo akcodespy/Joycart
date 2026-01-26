@@ -5,7 +5,7 @@ from app.db.db import get_db
 from fastapi.templating import Jinja2Templates
 from app.auth import get_current_user,create_access_token
 from app.db.models import User
-from app.user.services.user_services import create_user,authenticate_user,home,profile,update_profile,add_address,edit_address,delete_address
+from app.user.services.user_services import create_user,authenticate_user,home,profile,update_profile,add_addresses,edit_address,delete_address
 
 
 router = APIRouter()
@@ -176,7 +176,7 @@ def add_address_endpoint(
     db: Session = Depends(get_db)
     
 ):
-    add_address(current_user,name,phone,address_line1,address_line2,city,state,pincode,is_default,db)
+    add_addresses(current_user,name,phone,address_line1,address_line2,city,state,pincode,is_default,db)
 
     return RedirectResponse(redirect_to or
         "/profile?section=address",

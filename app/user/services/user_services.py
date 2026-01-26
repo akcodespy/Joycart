@@ -101,7 +101,7 @@ def update_profile(username,email,current_user,db):
 
     return user
 
-def add_address(current_user,name,phone,address_line1,address_line2,city,state,pincode,is_default,db):
+def add_addresses(current_user,name,phone,address_line1,address_line2,city,state,pincode,is_default,db):
     if is_default:
         db.query(Address).filter(
             Address.user_id == current_user.id,
