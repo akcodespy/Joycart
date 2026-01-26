@@ -19,8 +19,8 @@ from app.checkout.routers.checkout_router import pages_router as checkout_pages_
 from app.checkout.routers.razorpay_webhook_router import router as razorpay_webhook_router
 from app.checkout.routers.cod_router import router as cod_router
 from app.checkout.routers.cod_router import pages_router as cod_pages_router
-from app.orders import router as order_router
-from app.orders import pages_router as order_pages_router
+from app.orders.routers.orders_router import router as order_router
+from app.orders.routers.orders_router import pages_router as order_pages_router
 from app.reviews import router as review_router
 from app.reviews import pages_router as review_pages_router
 from app.admin.routers.admin_router import router as admin_router

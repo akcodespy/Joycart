@@ -1,29 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException,Request
-from sqlalchemy.orm import Session
-from app.db.db import get_db
-from fastapi.templating import Jinja2Templates
-from app.db.models import Order, OrderItems, Product,Payment, User,Refund
-from app.auth import get_current_user
+from app.db.models import Order,OrderItems,Product,Payment,Refund
+from fastapi import HTTPException
 from app.checkout.services.checkout_services import razorpay_client 
 from decimal import Decimal, ROUND_HALF_UP
 
-
-
-
-router = APIRouter()
-pages_router = APIRouter()
-
-templates = Jinja2Templates(directory="templates")
-
-
-@router.get("/{order_id}")
-def get_single_order(request: Request,
-    order_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    
-):
-    
+def single_order(order_id,current_user,db):
+        
     order = (
         db.query(Order)
         .filter(
@@ -90,13 +71,8 @@ def get_single_order(request: Request,
 
     return data
 
+def single_order_item(item_id,current_user,db):
 
-@router.get("/item/{item_id}")
-def get_single_order_item(
-    item_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
     row = (
         db.query(OrderItems, Order, Product)
         .join(Order, Order.id == OrderItems.order_id)
@@ -155,14 +131,7 @@ def get_single_order_item(
             else None
         ),
     }
-
-
-@pages_router.get("/orders")
-def get_all_order_items(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def all_order_items(current_user,db):
     rows = (
         db.query(OrderItems, Order, Product)
         .join(Order, Order.id == OrderItems.order_id)
@@ -185,34 +154,9 @@ def get_all_order_items(
         }
         for oi, order, product in rows
     ]
+    return order_items
 
-    return templates.TemplateResponse(
-        "orders.html",
-        {
-            "request": request,
-            "order_items": order_items,
-            "current_user": current_user
-        }
-    )
-
-@pages_router.get("/orders/{order_id}/{item_id}")
-def order_detail_page(request: Request,
-    current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse(
-        "orderdetails.html",
-        {"request": request,
-         "current_user":current_user}
-    )
-
-
-#######################################CANCEL AND REFUND ORDERS###################################
-@router.post("/item/{item_id}/cancel")
-def cancel_order_item(
-    request: Request,
-    item_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def cancel_item(item_id,current_user,db):
     try:
         
         item = (
@@ -246,7 +190,7 @@ def cancel_order_item(
 
         restore_stock_for_item(item, db)
 
-        if payment.method == "COD":
+        if payment and payment.method == "COD":
             payment.status = "NOT_REQUIRED"
 
         else:
@@ -257,7 +201,7 @@ def cancel_order_item(
             if not existing_refund:
                 refund = create_refund_record(item, payment, db)
                 db.flush()
-                initiate_razorpay_refund(refund, db)
+                initiate_razorpay_refund(refund)
                 
         db.commit()
         return {"message": "Item cancelled"}
@@ -265,6 +209,7 @@ def cancel_order_item(
     except Exception as e:
         db.rollback()
         raise HTTPException(500, str(e))
+
 
 def create_refund_record(item,payment,db):
 
@@ -319,4 +264,3 @@ def restore_stock_for_item(item, db):
         return
 
     product.stock += item.quantity
-
