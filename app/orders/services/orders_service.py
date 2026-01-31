@@ -153,9 +153,10 @@ def all_order_items(current_user, db):
     return order_items
 
 
+
 def cancel_item(item_id, current_user, db):
     try:
-
+        
         item = (
             db.query(OrderItems)
             .join(Order)
@@ -164,45 +165,75 @@ def cancel_item(item_id, current_user, db):
         )
 
         if not item:
-            raise HTTPException(404)
+            raise HTTPException(404, "Order item not found")
 
+        
         if item.status == "CANCELLED":
             return {"message": "Item already cancelled"}
 
         if item.status not in ["PLACED", "CONFIRMED"]:
             raise HTTPException(400, "This item cannot be cancelled")
 
-        payment = db.query(Payment).filter(Payment.order_id == item.order_id).first()
+        
         item.status = "CANCELLED"
-
         restore_stock_for_item(item, db)
 
+        
+        payment = (
+            db.query(Payment)
+            .filter(Payment.order_id == item.order_id)
+            .first()
+        )
+
+        
         if payment and payment.method == "COD":
             payment.status = "NOT_REQUIRED"
 
-        else:
-            existing_refund = (
-                db.query(Refund).filter(Refund.orderitem_id == item.id).first()
-            )
+        
+        elif payment:
+            refund = create_refund_record(item, payment, db)
+            db.flush()  
 
-            if not existing_refund:
-                refund = create_refund_record(item, payment, db)
-                db.flush()
+            
+            if refund and refund.gateway_payment_id:
                 initiate_razorpay_refund(refund, db)
+            
 
         db.commit()
-        return {"message": "Item cancelled"}
+        return {
+            "message": "Item cancelled. Refund will be processed if applicable."
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(500, str(e))
+        print("CANCEL ITEM ERROR:", e)
+        raise HTTPException(500, "Failed to cancel item")
+
+
 
 
 def create_refund_record(item, payment, db):
-
     if not payment:
         return None
 
+    
+    existing_refund = (
+        db.query(Refund)
+        .filter(
+            Refund.orderitem_id == item.id,
+            Refund.status.in_(["FAILED", "INITIATED", "PROCESSING"])
+        )
+        .first()
+    )
+
+    if existing_refund:
+        return existing_refund  
+
+    
     refund = Refund(
         payment_id=payment.id,
         gateway_payment_id=payment.gateway_payment_id,
@@ -214,6 +245,7 @@ def create_refund_record(item, payment, db):
 
     db.add(refund)
     return refund
+
 
 
 def initiate_razorpay_refund(refund, db):
@@ -235,7 +267,6 @@ def initiate_razorpay_refund(refund, db):
         refund.gateway_refund_id = razorpay_refund["id"]
         refund.status = "PROCESSING"
 
-        db.commit()
 
     except Exception as e:
         refund.status = "FAILED"
